@@ -18,6 +18,14 @@ package grails.plugins.crm.security.shiro
 
 import grails.plugins.crm.core.TenantEntity
 
+/**
+ * This domain class represents a user's permission within a specific account (tenant).
+ * Normally users get permissions from it's roles (ShiroCrmRole.permissions) but users can also have individual permissions.
+ * Individual permission are stored in this domain.
+ *
+ * @author Goran Ehrsson
+ * @since 0.1
+ */
 @TenantEntity
 class ShiroCrmUserPermission {
 

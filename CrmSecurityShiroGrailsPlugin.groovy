@@ -14,20 +14,24 @@
 *  limitations under the License.
 *  under the License.
 */
+
 import grails.plugins.crm.security.shiro.ShiroCrmSecurityDelegate
 
 class CrmSecurityShiroGrailsPlugin {
     // Dependency group
     def groupId = "grails.crm"
     // the plugin version
-    def version = "0.8"
+    def version = "0.9.0"
     // the version or versions of Grails the plugin is designed for
     def grailsVersion = "2.0 > *"
     // the other plugins this plugin depends on
     def dependsOn = [:]
+    // Load after crm-core
+    def loadAfter = ['crmCore', 'shiro']
+
     // resources that are excluded from plugin packaging
     def pluginExcludes = [
-        "grails-app/views/error.gsp"
+            "grails-app/views/error.gsp"
     ]
 
     def title = "Shiro Security for Grails CRM" // Headline display name of the plugin
@@ -49,21 +53,30 @@ This plugin leverage the shiro plugin to authenticate/authorize Grails CRM users
     def organization = [name: "Technipelago AB", url: "http://www.technipelago.se/"]
 
     // Any additional developers beyond the author specified above.
-//    def developers = [ [ name: "Joe Bloggs", email: "joe@bloggs.net" ]]
+    //    def developers = [ [ name: "Joe Bloggs", email: "joe@bloggs.net" ]]
 
     // Location of the plugin's issue tracker.
-    def issueManagement = [ system: "JIRA", url: "http://jira.grails.org/browse/GPCRMSHIRO" ]
+    def issueManagement = [system: "GITHUB", url: "https://github.com/goeh/grails-crm-security-shiro/issues"]
 
     // Online location of the plugin's browseable source code.
-    def scm = [ url: "https://github.com/goeh/grails-crm-security-shiro" ]
+    def scm = [url: "https://github.com/goeh/grails-crm-security-shiro"]
 
     def doWithWebDescriptor = { xml ->
         // TODO Implement additions to web.xml (optional), this event occurs before
     }
 
     def doWithSpring = {
+        def cm = credentialMatcher(org.apache.shiro.authc.credential.Sha512CredentialsMatcher) {
+            storedCredentialsHexEncoded = true
+            hashSalted = true
+            hashIterations = 1000
+        }
         crmSecurityDelegate(ShiroCrmSecurityDelegate) {
             shiroSecurityManager = ref('shiroSecurityManager')
+            credentialMatcher = cm//ref('credentialMatcher')
+        }
+        controllerGroupMapper(grails.plugins.crm.security.shiro.ControllerGroupMapper) {
+            grailsApplication = application
         }
     }
 

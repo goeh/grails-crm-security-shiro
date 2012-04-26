@@ -137,7 +137,6 @@ class ShiroDbRealm {
 
     def isPermitted(userName, requiredPermission) {
         def tenant = TenantUtils.getTenant()
-
         // Does the user have the given permission directly associated with himself?
         def permissions = ShiroCrmUserPermission.withCriteria{
             projections {
@@ -160,6 +159,7 @@ class ShiroDbRealm {
         }
 
         if (retval != null) {
+            log.debug "$userName@$tenant is permitted $requiredPermission by user permission [$retval]"
             return true // Found a matching permission!
         }
 
@@ -177,7 +177,7 @@ class ShiroDbRealm {
             }
             cache true
         }.collect{it.role.permissions}.flatten()
-        
+
         // There may be some duplicate entries in the results, but
         // at this stage it is not worth trying to remove them. Now,
         // create a real permission from each result and check it
@@ -190,6 +190,11 @@ class ShiroDbRealm {
             return perm.implies(requiredPermission)
         }
 
+        if(retval != null) {
+            log.debug "$userName@$tenant is permitted $requiredPermission by role permission [$retval]"
+        } else {
+            log.debug "$userName@$tenant is NOT permitted $requiredPermission"
+        }
         return (retval != null)
     }
 }

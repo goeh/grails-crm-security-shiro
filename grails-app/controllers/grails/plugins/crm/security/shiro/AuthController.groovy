@@ -21,9 +21,12 @@ import org.apache.shiro.authc.AuthenticationException
 import org.apache.shiro.authc.UsernamePasswordToken
 import org.apache.shiro.web.util.SavedRequest
 import org.apache.shiro.web.util.WebUtils
+import grails.plugins.crm.core.TenantUtils
 
 class AuthController {
+
     def shiroSecurityManager
+    def shiroCrmSecurityService
 
     def index = { redirect(action: "login", params: params) }
 
@@ -56,6 +59,17 @@ class AuthController {
             // password is incorrect.
             SecurityUtils.subject.login(authToken)
 
+            def tenant
+            def availableTenants = shiroCrmSecurityService.getAllTenants()
+            if(availableTenants.isEmpty()) {
+                targetUri = "/account"
+            } else {
+                tenant = shiroCrmSecurityService.getDefaultTenant() ?: availableTenants.get(0)
+            }
+
+            TenantUtils.tenant = tenant
+            request.session.tenant = tenant
+            log.info "Tenant set to $tenant at login"
             log.info "Redirecting to '${targetUri}'."
             redirect(uri: targetUri)
         }
@@ -87,11 +101,14 @@ class AuthController {
         // Log the user out of the application.
         SecurityUtils.subject?.logout()
 
-        // For now, redirect back to the home page.
-        redirect(uri: "/")
+        // Redirect back to the home page.
+        redirect(uri: params.targetUri ?: "/")
     }
 
     def unauthorized = {
-        render "You do not have permission to access this page."
+    }
+
+
+    def password = {
     }
 }

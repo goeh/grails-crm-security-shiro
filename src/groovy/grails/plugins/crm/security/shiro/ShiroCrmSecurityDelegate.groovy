@@ -21,6 +21,9 @@ import grails.plugins.crm.core.TenantUtils
 import org.apache.shiro.subject.Subject
 import org.apache.shiro.subject.SimplePrincipalCollection
 import org.apache.shiro.mgt.DefaultSecurityManager
+import org.apache.shiro.crypto.hash.Sha512Hash
+import org.apache.shiro.crypto.SecureRandomNumberGenerator
+import org.apache.shiro.authz.UnauthorizedException
 
 /**
  * Apache Shiro implementation of a security delegate
@@ -29,12 +32,22 @@ import org.apache.shiro.mgt.DefaultSecurityManager
 class ShiroCrmSecurityDelegate {
 
     def shiroSecurityManager
+    def credentialMatcher
 
     boolean isAuthenticated() {
         SecurityUtils.subject?.isAuthenticated()
     }
 
+    boolean isPermitted(permission) {
+        def tenant = TenantUtils.tenant.toString()
+        SecurityUtils.subject?.isPermitted(permission.toString())
+    }
+
     def runAs(String username, Closure closure) {
+        def user = ShiroCrmUser.findByUsernameAndEnabled(username, true)
+        if(! user) {
+            throw new UnauthorizedException("[$username] is not a valid user")
+        }
         def realm = shiroSecurityManager.realms.find {it}
         def bootstrapSecurityManager = new DefaultSecurityManager(realm)
         def principals = new SimplePrincipalCollection(username, realm.name)
@@ -52,6 +65,10 @@ class ShiroCrmSecurityDelegate {
         return tenant ? ShiroCrmTenant.get(tenant)?.dao : null
     }
 
+    /**
+     * Return all tenants that the current user owns.
+     * @return list of tenants (DAO)
+     */
     List getTenants() {
         def username = SecurityUtils.subject.principal?.toString()
         if (!username) {
@@ -61,6 +78,40 @@ class ShiroCrmSecurityDelegate {
         if (!user) {
             throw new IllegalArgumentException("user [$username] not found")
         }
-        ShiroCrmTenant.findAllByOwner(user)*.dao
+        ShiroCrmTenant.findAllByUser(user)*.dao
+    }
+
+    /**
+     * Check if current user can access the specified tenant.
+     * @param tenantId the tenant ID to check
+     * @return true if user has access to the tenant (by it's roles, permissions or ownership)
+     */
+    boolean isValidTenant(Long tenantId) {
+        def username = SecurityUtils.subject.principal?.toString()
+        if (!username) {
+            throw new IllegalArgumentException("not authenticated")
+        }
+        def user = ShiroCrmUser.findByUsername(username)
+        if (!user) {
+            throw new IllegalArgumentException("user [$username] not found")
+        }
+        if (user.accounts.find {it.id == tenantId}) {
+            return true // User own this tenant
+        }
+        if (user.permissions.find {it.tenantId == tenantId}) {
+            return true // User has individual permission for this tenant
+        }
+        if (user.roles.find {it.role.tenantId == tenantId}) {
+            return true // User's role gives permission to the tenant.
+        }
+        return false
+    }
+
+    def hashPassword(String password, byte[] salt) {
+        new Sha512Hash(password, salt, credentialMatcher.hashIterations ?: 1).toHex()
+    }
+
+    byte[] generateSalt() {
+        new SecureRandomNumberGenerator().nextBytes().getBytes()
     }
 }

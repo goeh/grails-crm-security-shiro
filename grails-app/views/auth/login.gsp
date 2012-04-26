@@ -1,71 +1,69 @@
+<!DOCTYPE html>
 <html>
 <head>
-  <meta name="layout" content="main"/>
-  <title>
-    <g:message code="application.name.1" default="Grails"/>
-    <g:message code="application.name.2" default="CRM"/>
-    -
-    <g:message code="login.title" default="Login"/>
-  </title>
-  <style type="text/css">
-  #loginForm .buttons {
-    margin-top: 10px;
-  }
-  </style>
+    <meta name="layout" content="main"/>
+    <title><g:message code="auth.login.title" default="Login"/></title>
+    <r:script>
+        $(document).ready(function() {
+            $("#login-username").focus();
+        });
+    </r:script>
 </head>
 
 <body>
 
-<div class="dialog">
-  <h1>
-    <g:message code="application.name.1" default="Grails"/>
-    <g:message code="application.name.2" default="CRM"/>
-    -
-    <g:message code="login.title" default="Login"/>
-  </h1>
-
-  <g:form action="signIn" id="loginForm" name="loginForm">
-
-      <fieldset>
-        <legend><g:message code="login.caption" default="Please sign in..."/></legend>
-
-        <input type="hidden" name="targetUri" value="${targetUri}"/>
-
-        <label><g:message code="login.username" default="Username"/></label>
-        <input type="text" name="username" value="${username}" size="25"/>
-
-        <label><g:message code="login.password" default="Password"/></label>
-        <input type="password" name="password" value="" size="25"/>
-
-        <br/>
-
-        <g:checkBox name="rememberMe" value="${rememberMe}"/>
-        <label class="inline"><g:message code="login.rememberMe" default="Remember me"/></label>
-
-        <g:if test="${flash.message}">
-          <div class="message"><g:message code="${flash.message}" args="${flash.args}"
-                                          default="${flash.defaultMessage ?: flash.message}"/></div>
-        </g:if>
-
-      </fieldset>
-
-    <div class="buttons">
-      <crm:button class="positive" action="signIn" icon="accept" message="login.submit"/>
-    </div>
-
-  </g:form>
+<div class="hero-unit clearfix visible-desktop">
+    <g:img dir="images" file="arrow-ne.png" width="128" height="128" class="pull-right"/>
+    <crm:header title="auth.login.title" default="Please sign in"/>
+    <p>Här kan du som privatperson, företag eller bostadsrättsförening samla dina befintliga avtal,
+    få överblick över dina fasta kostnader och få nya avtalsförslag.
+    Logga in eller registrera dig till höger för att fortsätta.
+    </p>
 </div>
 
-<script type="text/javascript">
-  <!--
-  (function() {
-    var elem = document.forms["loginForm"].elements["username"];
-    if (elem != null) {
-      elem.focus();
-    }
-  })();
-  // -->
-</script>
+<g:form action="signIn" name="loginForm" class="hidden-desktop">
+
+    <crm:header title="auth.login.title" default="Please sign in"/>
+
+    <input type="hidden" name="targetUri" value="${targetUri}"/>
+
+    <div class="control-group">
+        <label class="control-label" for="username"><g:message code="auth.login.username"
+                                                               default="Username"/></label>
+
+        <div class="controls">
+            <g:textField name="username" value="${username}" autofocus=""/>
+        </div>
+    </div>
+
+    <div class="control-group">
+        <label class="control-label" for="password"><g:message code="auth.login.password"
+                                                               default="Password"/></label>
+
+        <div class="controls">
+            <g:passwordField name="password" value="${password}"/>
+        </div>
+    </div>
+
+    <div class="form-actions">
+        <crm:button visual="primary" icon="icon-ok icon-white" label="auth.login.button.submit.label"/>
+    </div>
+
+</g:form>
+
+<g:content tag="sidebar">
+
+    <div class="well">
+
+        <ul class="nav nav-list">
+            <li><g:link mapping="register"><g:message code="register.invite.label"
+                                                      default="No account yet? Create one now!"/></g:link></li>
+            <li><g:link mapping="password"><g:message code="auth.password.forgot.label"
+                                                      default="Forgot password?"/></g:link></li>
+        </ul>
+    </div>
+
+</g:content>
 
 </body>
 </html>

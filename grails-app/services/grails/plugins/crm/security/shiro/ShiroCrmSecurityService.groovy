@@ -16,65 +16,97 @@
  */
 package grails.plugins.crm.security.shiro
 
-import org.apache.shiro.crypto.SecureRandomNumberGenerator
-import org.apache.shiro.crypto.hash.Sha512Hash
 import org.apache.shiro.SecurityUtils
 import grails.plugins.crm.core.TenantUtils
+import grails.plugins.crm.core.CrmException
 
 class ShiroCrmSecurityService {
 
     static transactional = true
 
+    def grailsApplication
     def crmSecurityService
-    def credentialMatcher
 
-    def hashPassword(String password, byte[] salt) {
-        new Sha512Hash(password, salt, credentialMatcher.hashIterations ?: 1).toHex()
-    }
-
-    byte[] generateSalt() {
-        new SecureRandomNumberGenerator().nextBytes().getBytes()
-    }
-
-    // Protected
-    def createUser(Map props) {
+    /**
+     * Create new user.
+     *
+     * @param props user domain properties
+     *
+     * @return ShiroCrmUser instance
+     */
+    ShiroCrmUser createUser(Map props) {
         if (ShiroCrmUser.findByUsername(props.username)) {
-            throw new IllegalArgumentException("user [${props.username}] already exists")
+            throw new CrmException("createUser.user.exists.error", [props.username])
         }
-        def user = new ShiroCrmUser(props)
-        def salt = generateSalt()
-        user.passwordHash = hashPassword(props.password, salt)
+        def safeProps = props.findAll {ShiroCrmUser.BIND_WHITELIST.contains(it.key)}
+        def user = new ShiroCrmUser(safeProps)
+        def salt = crmSecurityService.generateSalt()
+        user.passwordHash = crmSecurityService.hashPassword(props.password, salt)
         user.passwordSalt = salt.encodeBase64().toString()
+
         user.save(failOnError: true, flush: true)
-        return user.dao
+
+        // Use Spring Events plugin to broadcast that a new user was created.
+        publishEvent(new UserCreatedEvent(user))
+
+        return user
     }
 
-    boolean isValidTenant(Long id, String username) {
-        def tenant = ShiroCrmTenant.get(id)
-        return tenant != null && tenant.owner.username == username // TODO Also check other permissions
+    /**
+     * Get user information for a user
+     * @param username username or null for current user
+     * @return user properties (DAO)
+     */
+    def getUserInfo(String username = null) {
+        getUser(username)?.dao
     }
 
-    // Protected
-    def createTenant(String tenantName) {
+    /**
+     * Return the user domain instance for the current user.
+     *
+     * @param username (optional) username or null for current user
+     * @return ShiroCrmUser instance
+     */
+    ShiroCrmUser getUser(String username = null) {
+        if (!username) {
+            username = crmSecurityService.currentUser?.username
+        }
+        username ? ShiroCrmUser.findByUsername(username) : null
+    }
+
+    /**
+     * Create new tenant.
+     *
+     * @param tenantName name of tenant
+     * @param tenantType type of tenant
+     * @return ShiroCrmTenant instance
+     */
+    ShiroCrmTenant createTenant(String tenantName, String tenantType = null) {
         if (!tenantName) {
             throw new IllegalArgumentException("tenantName is null")
         }
-        def username = SecurityUtils.subject.principal?.toString()
-        if (!username) {
+        def user = getUser()
+        if (!user) {
             throw new IllegalArgumentException("not authenticated")
         }
-        def user = ShiroCrmUser.findByUsername(username)
-        if (!user) {
-            throw new IllegalArgumentException("user [$username] not found")
-        }
-        def tenant = ShiroCrmTenant.findByOwnerAndName(user, tenantName)?.dao
+        def tenant = ShiroCrmTenant.findByUserAndName(user, tenantName)
         if (!tenant) {
-            tenant = new ShiroCrmTenant(owner: user, name: tenantName).save(failOnError: true, flush: true)?.dao
+            user.addToAccounts(tenant = new ShiroCrmTenant(name: tenantName, type: tenantType))
+            user.save(flush: true)
+
+            // Use Spring Events plugin to broadcast that a new tenant was created.
+            // Receivers could for example assign default roles and permissions for this tenant.
+            publishEvent(new TenantCreatedEvent(tenant))
         }
+
         return tenant
     }
 
-    // Protected
+    /**
+     * Get tenant information.
+     * @param id tenant ID
+     * @return tenant properties (DAO)
+     */
     def tenantInfo(Long id) {
         def tenant = ShiroCrmTenant.get(id)
         if (!tenant) {
@@ -83,65 +115,260 @@ class ShiroCrmSecurityService {
         return tenant.dao
     }
 
-    void deleteTenant(Long id) {
+    /**
+     * Check that a user has any permission to access a tenant.
+     * This method looks for roles and permissions in the specified tenant.
+     *
+     * @param id tenant ID
+     * @param username username to check
+     * @return true if the user has a role or permission in the given tenant
+     */
+    boolean isValidTenant(Long id, String username) {
+
+        // Owns this tenant
         def tenant = ShiroCrmTenant.get(id)
+        if (tenant != null && tenant.user.username == username) {
+            return true
+        }
+
+        // Have role in this tenant?
+        if (ShiroCrmUserRole.createCriteria().count {
+            user {
+                eq('username', username)
+            }
+            role {
+                eq('tenantId', id)
+            }
+            cache true
+        } > 0) {
+            return true
+        }
+
+        // Have permission in this tenant?
+        if (ShiroCrmUserPermission.createCriteria().count {
+            user {
+                eq('username', username)
+            }
+            eq('tenantId', id)
+            cache true
+        } > 0) {
+            return true
+        }
+        return false
+    }
+
+    /**
+     * Set tenant name.
+     *
+     * @param id tenant ID
+     * @param name tenant name
+     * @return tenant properties (DAO)
+     */
+    def setTenantName(Long id, String name) {
+        def tenant = ShiroCrmTenant.lock(id)
         if (!tenant) {
             throw new IllegalArgumentException("Tenant not found: $id")
         }
 
-        tenant.delete(flush:true)
+        tenant.name = name
 
-        if (id == TenantUtils.tenant) {
-            // Removed the current tenant
-            TenantUtils.setTenant(0L)
+        tenant.save(failOnError: true)
+
+        tenant.dao
+    }
+
+    /**
+     * Delete a tenant.
+     * Checks will be performed to see if someone uses this tenant.
+     *
+     * @param id id of the tenant to delete
+     * @throws CrmException if tenant is in use
+     */
+    void deleteTenant(Long id) {
+
+        // Get tenant.
+        def shiroCrmTenant = ShiroCrmTenant.get(id)
+        if (!shiroCrmTenant) {
+            throw new CrmException('shiroCrmTenant.not.found.message', ['Account', id])
         }
+
+        // Make sure the tenant is owned by current user.
+        def currentUser = getUser()
+        if (shiroCrmTenant.user.id != currentUser?.id) {
+            throw new CrmException('shiroCrmTenant.permission.denied', ['Account', shiroCrmTenant.name])
+        }
+
+        // Make sure it's not the active tenant being deleted.
+        if (TenantUtils.tenant == shiroCrmTenant.id) {
+            throw new CrmException('shiroCrmTenant.delete.current.message', ['Account', shiroCrmTenant.name])
+        }
+
+        // Make sure it's not the default tenant being deleted.
+        if (currentUser.defaultTenant == shiroCrmTenant.id) {
+            throw new CrmException('shiroCrmTenant.delete.start.message', ['Account', shiroCrmTenant.name])
+        }
+
+        // Make sure we don't delete a tenant that is the default tenant for other users.
+        def others = ShiroCrmUser.findAllByDefaultTenant(shiroCrmTenant.id)
+        if (others) {
+            throw new CrmException('shiroCrmTenant.delete.others.message', ['Account', shiroCrmTenant.name, others.join(', ')])
+        }
+
+        // Make sure we don't delete a tenant that is in use by other users (via roles)
+        def affectedRoles = ShiroCrmUserRole.createCriteria().list() {
+            role {
+                eq('tenantId', id)
+            }
+        }
+        def otherPeopleAffected = affectedRoles.findAll {it.user.id != currentUser.id}.collect {it.user}
+        if (otherPeopleAffected) {
+            throw new CrmException('shiroCrmTenant.delete.others.message', ['Account', shiroCrmTenant.name, otherPeopleAffected.join(', ')])
+        }
+
+        // Make sure we don't delete a tenant that is in use by other users (via permissions)
+        def affectedPermissions = ShiroCrmUserPermission.findAllByTenantId(id)
+        otherPeopleAffected = affectedPermissions.findAll {it.user.id != currentUser.id}.collect {it.user}
+        if (otherPeopleAffected) {
+            throw new CrmException('shiroCrmTenant.delete.others.message', ['Account', shiroCrmTenant.name, otherPeopleAffected.join(', ')])
+        }
+
+        // Delete my roles.
+        for (userrole in affectedRoles) {
+            def role = userrole.role
+            currentUser.removeFromRoles(userrole)
+            userrole.delete()
+            role.delete()
+        }
+
+        // Delete my permissions.
+        for (perm in affectedPermissions) {
+            currentUser.removeFromPermissions(perm)
+            perm.delete()
+        }
+
+        // It's my account and nobody else uses it, lets nuke it!
+        currentUser.removeFromAccounts(shiroCrmTenant)
+        shiroCrmTenant.delete()
+
+        currentUser.save(flush: true)
+
+        // Use Spring Events plugin to broadcast that the tenant was deleted.
+        // Receivers should remove any data associated with the tenant.
+        publishEvent(new TenantDeletedEvent(shiroCrmTenant))
     }
 
     Collection<Long> getAllTenants(String username = null) {
         if (!username) {
-            username = SecurityUtils.subject.principal.toString()
+            username = SecurityUtils.subject?.principal?.toString()
+            if (!username) {
+                throw new IllegalArgumentException("not authenticated")
+            }
         }
         def result = new HashSet<Long>()
         def user = ShiroCrmUser.findByUsername(username)
         if (user) {
             // Owned tenants
-            def tmp = user.accounts*.id
+            def tmp = ShiroCrmTenant.findAllByUser(user)*.id
             if (tmp) {
                 result.addAll(tmp)
             }
+            println "$username own tenants: ${tmp}"
 
             // Role tenants
-            tmp = user.roles*.role.tenantId
+            tmp = ShiroCrmUserRole.findAllByUser(user).collect {it.role.tenantId}
             if (tmp) {
                 result.addAll(tmp)
             }
-
+            println "$username role tenants: ${tmp}"
             // Permission tenants
-            tmp = user.permissions*.tenantId
+            tmp = ShiroCrmUserPermission.findAllByUser(user)*.tenantId
             if (tmp) {
                 result.addAll(tmp)
+            }
+            println "$username permission tenants: ${tmp}"
+        }
+        println "$username all tenants: $result"
+        return result.asList()
+    }
+
+    Collection<Map> getUserTenants(String username = null) {
+        if (!username) {
+            username = SecurityUtils.subject?.principal?.toString()
+            if (!username) {
+                throw new IllegalArgumentException("not authenticated")
             }
         }
-        return result.asList()
+        def result
+        try {
+            def tenants = getAllTenants(username)
+            def currentTenant = TenantUtils.tenant
+            result = tenants.sort {it}.collect {
+                def info = tenantInfo(it)
+                def extra = [current: currentTenant == it, my: info.user.username == username]
+                return info + extra
+            }
+        } catch (Exception e) {
+            log.error("Failed to get tenants for user [$username]", e)
+            result = []
+        }
+        return result
+    }
+
+    /**
+     * Return the default tenant (ID) for a user.
+     * @param username
+     * @return tenant id
+     */
+    Long getDefaultTenant(String username = null) {
+        getUser(username)?.defaultTenant
+    }
+
+    /**
+     * Set the default tenant (ID) for a user.
+     * @param username
+     * @param tenant
+     * @return
+     */
+    def setDefaultTenant(String username = null, Long tenant = null) {
+        def user
+        if (username) {
+            user = getUser(username)
+        } else {
+            user = getUser()
+            username = user.username
+        }
+        if (!tenant) {
+            tenant = TenantUtils.getTenant()
+        }
+        if (tenant) {
+            // Check that the user has permission to access this tenant.
+            def availableTenants = getAllTenants(username)
+            if (!availableTenants.contains(tenant)) {
+                throw new IllegalArgumentException("Tenant [$tenant] is not a valid tenant for user [$username]")
+            }
+        }
+        user = ShiroCrmUser.lock(user.id)
+        user.defaultTenant = tenant
+        user.save(flush:true)
     }
 
     def createRole(String rolename, List<String> permissions = []) {
         def tenant = TenantUtils.getTenant()
         def role = ShiroCrmRole.findByNameAndTenantId(rolename, tenant)
-        if(role) {
+        if (role) {
             throw new IllegalArgumentException("Role [$rolename] already exists")
         }
-        role = new ShiroCrmRole(name:rolename, tenantId:tenant)
-        for(perm in permissions) {
+        role = new ShiroCrmRole(name: rolename, tenantId: tenant)
+        for (perm in permissions) {
             role.addToPermissions(perm)
         }
-        role.save(failOnError:true, flush:true)
+        role.save(failOnError: true, flush: true)
     }
 
     def addUserRole(String username, String rolename) {
         def tenant = TenantUtils.getTenant()
         def role = ShiroCrmRole.findByNameAndTenantId(rolename, tenant)
-        if(!role) {
+        if (!role) {
             throw new IllegalArgumentException("role [$rolename] not found")
         }
         def user = ShiroCrmUser.findByUsername(username)
@@ -149,8 +376,10 @@ class ShiroCrmSecurityService {
             throw new IllegalArgumentException("user [$username] not found")
         }
         def userrole = ShiroCrmUserRole.findByUserAndRole(user, role)
-        if(!userrole) {
-            userrole = new ShiroCrmUserRole(user:user, role:role).save(failOnError:true, flush:true)
+        if (!userrole) {
+            user = ShiroCrmUser.lock(user.id)
+            user.addToRoles(userrole = new ShiroCrmUserRole(role: role))
+            user.save(flush:true)
         }
         return userrole
     }
@@ -162,10 +391,41 @@ class ShiroCrmSecurityService {
             throw new IllegalArgumentException("user [$username] not found")
         }
         def perm = ShiroCrmUserPermission.findByPermissionsStringAndTenantId(permission, tenant)
-        if(!perm) {
-            perm = new ShiroCrmUserPermission(tenantId:tenant, user:user, permissionsString: permission).save(failOnError:true, flush:true)
+        if (!perm) {
+            user = ShiroCrmUser.lock(user.id)
+            user.addToPermissions(perm = new ShiroCrmUserPermission(tenantId: tenant, permissionsString: permission))
+            user.save(flush:true)
         }
         return perm
+    }
+
+    def setUserStatus(ShiroCrmUser user, boolean enabled) {
+        if (user.enabled != enabled) {
+            user.enabled = enabled
+            user.save(failOnError: true, flush: true)
+
+            publishEvent(new UserChangedStatusEvent(user))
+        }
+    }
+
+    def getTenantUsers(Long tenant = null) {
+        if (tenant == null) {
+            tenant = TenantUtils.getTenant()
+        }
+
+        //def shiroCrmTenant = ShiroCrmTenant.get(tenant)
+        //if(! shiroCrmTenant) {
+        //    throw new IllegalArgumentException("Tenant [$tenant] not found")
+        //}
+        def roles = ShiroCrmUserRole.createCriteria().list() {
+            role {
+                eq('tenantId', tenant)
+            }
+        }
+
+        def permissions = ShiroCrmUserPermission.findAllByTenantId(tenant)
+
+        return /*[shiroCrmTenant] +*/ roles + permissions
     }
 
 }

@@ -4,6 +4,8 @@ grails.project.test.reports.dir = "target/test-reports"
 grails.project.target.level = 1.6
 //grails.project.war.file = "target/${appName}-${appVersion}.war"
 
+grails.project.repos.default = "crm"
+
 grails.project.dependency.resolution = {
     // inherit Grails' default dependencies
     inherits("global") {
@@ -17,6 +19,8 @@ grails.project.dependency.resolution = {
         // from public Maven repositories
         //mavenCentral()
         //mavenLocal()
+        mavenRepo "http://labs.technipelago.se/repo/plugins-releases-local/"
+        mavenRepo "http://labs.technipelago.se/repo/crm-releases-local/"
         //mavenRepo "http://snapshots.repository.codehaus.org"
         //mavenRepo "http://repository.codehaus.org"
         //mavenRepo "http://download.java.net/maven/2/"
@@ -31,22 +35,29 @@ grails.project.dependency.resolution = {
     plugins {
         runtime ":hibernate:$grailsVersion"
         build(":tomcat:$grailsVersion",
-                ":release:1.0.0") {
+                ":release:2.0.0") {
             export = false
         }
-        //compile 'grails.crm:crm-core:latest.integration'
         compile ':shiro:latest.integration'
+
+        test(":spock:latest.integration")
         test ':codenarc:latest.integration'
 
+        compile ":spring-events:1.2"
+
         runtime ":jquery:1.7.1"
-        runtime(":twitter-bootstrap:latest.integration") {
+        runtime(":twitter-bootstrap:2.0.2.24") {
             excludes 'resources'
         }
         runtime ":resources:1.1.6"
+
+        runtime ":mail:1.0"
+
+        compile "grails.crm:crm-core:latest.integration"
     }
 }
 
-grails.plugin.location.'crm-core'="../crm-core"
+//grails.plugin.location.'crm-core'="../crm-core"
 
 codenarc {
     reports = {

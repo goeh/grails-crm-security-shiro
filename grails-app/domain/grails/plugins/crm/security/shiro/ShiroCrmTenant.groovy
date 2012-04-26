@@ -19,6 +19,8 @@ package grails.plugins.crm.security.shiro
 import grails.plugins.crm.core.AuditEntity
 
 /**
+ * This domain class represents a tenant, also known as "account".
+ * A user can be associated with multiple tenants but only have one tenant active at a given time.
  *
  * @author Goran Ehrsson
  * @since 0.1
@@ -26,11 +28,14 @@ import grails.plugins.crm.core.AuditEntity
 @AuditEntity
 class ShiroCrmTenant {
 
-    // Long id of this account will be used as tenantId for all instances created by this account.
+    // Long id of this account will be used as tenantId for all instances created by this tenant.
     String name
-    static belongsTo = [owner: ShiroCrmUser]
+    String type
+    static belongsTo = [user: ShiroCrmUser]
+    static hasMany = [features: String]
     static constraints = {
         name(size: 3..80, maxSize: 80, nullable: false, blank: false)
+        type(maxSize: 20, nullable: true)
     }
     static mapping = {
         cache usage: 'nonstrict-read-write'
@@ -39,12 +44,20 @@ class ShiroCrmTenant {
 
     static transients = ['dao']
 
-    @Override
+    /**
+     * Returns the name property.
+     * @return name property
+     */
     String toString() {
-        return "$name"
+        name
     }
 
+    /**
+     * Clients should use this method to get tenant properties instead of accessing the domain instance directly.
+     * The following properties are returned as a Map: [Long id, String name, String type, Map user [username, name, email]]
+     * @return a data access object (Map) representing the domain instance.
+     */
     def getDao() {
-        [id:id, name:name, owner:owner.username]
+        [id: id, name: name, type: type, user: [username: user.username, name: user.name, email: user.email], dateCreated: dateCreated]
     }
 }

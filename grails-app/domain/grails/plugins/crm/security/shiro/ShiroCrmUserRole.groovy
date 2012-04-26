@@ -16,6 +16,14 @@
  */
 package grails.plugins.crm.security.shiro
 
+/**
+ * This domain class connect users and roles.
+ * A user can have multiple roles in multiple accounts (tenants).
+ * This design reaches beyond traditional multi-tenancy support where a user can only access one tenant.
+ *
+ * @author Goran Ehrsson
+ * @since 0.1
+ */
 class ShiroCrmUserRole {
 
     ShiroCrmRole role
