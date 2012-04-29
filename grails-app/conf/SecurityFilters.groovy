@@ -56,10 +56,10 @@ class SecurityFilters {
                 }
 
                 // Check protected controllers in Config.groovy
-                //configControllers = grailsApplication.config.crm.security.controllers.protected
-                //if(configControllers?.contains(controllerName) && SecurityUtils.subject?.authenticated) {
-                //    return true
-                //}
+                configControllers = grailsApplication.config.crm.security.controllers.protected
+                if(configControllers?.contains(controllerName) && SecurityUtils.subject?.authenticated) {
+                    return true
+                }
 
                 // Access control by convention.
                 accessControl {

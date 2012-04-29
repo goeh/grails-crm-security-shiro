@@ -32,7 +32,6 @@ class ShiroCrmTenant {
     String name
     String type
     static belongsTo = [user: ShiroCrmUser]
-    static hasMany = [features: String]
     static constraints = {
         name(size: 3..80, maxSize: 80, nullable: false, blank: false)
         type(maxSize: 20, nullable: true)

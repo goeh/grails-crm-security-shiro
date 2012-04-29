@@ -28,38 +28,6 @@ class ShiroCrmSecurityServiceSpec extends grails.plugin.spock.IntegrationSpec {
     def grailsApplication
 
     def accountType
-/*
-    def setUp() {
-
-        accountType = shiroCrmSecurityService.createTenantType{
-            name "Test"
-            description "Test Type"
-            roles {
-                admin {
-                    name "Administrator"
-                    description "Account Admin"
-                    permissions "*:*"
-                }
-                guest {
-                    name "Guest"
-                    description "Read-Only Permission"
-                    permissions "crmContact:index,list,show"
-                }
-            }
-        }
-
-        def user = shiroCrmSecurityService.createUser([username: "test", name: "Test User", email:"test@test.com", password: "test123", enabled:true])
-        assert user != null
-
-        crmSecurityService.runAs("test") {
-            def account = shiroCrmSecurityService.createTenant("Test Account")
-            assert account?.id != null
-            assert "Test Account" == account.name
-            assert "test" == account.user
-            assert account.type?.name == accountType.name
-        }
-    }
-*/
 
     def "shiro security delegate is injected"() {
         expect: crmSecurityService.crmSecurityDelegate.class == ShiroCrmSecurityDelegate.class
