@@ -19,10 +19,10 @@ package grails.plugins.crm.security.shiro
 import org.springframework.context.ApplicationEvent
 
 /**
- * Event fired when a new ShiroCrmTenant is created by ShiroCrmSecurityService.
+ * Event fired when a ShiroCrmUser is updated by ShiroCrmSecurityService.
  */
-class TenantCreatedEvent extends ApplicationEvent {
-    TenantCreatedEvent(tenant) {
-        super(tenant)
+class UserUpdatedEvent extends ApplicationEvent {
+    UserUpdatedEvent(shiroCrmUser) {
+        super(shiroCrmUser)
     }
 }

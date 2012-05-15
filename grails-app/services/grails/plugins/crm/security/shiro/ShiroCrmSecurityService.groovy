@@ -53,6 +53,39 @@ class ShiroCrmSecurityService {
     }
 
     /**
+     * Update user information.
+     *
+     * @param props user domain properties
+     *
+     * @return ShiroCrmUser instance
+     */
+    ShiroCrmUser updateUser(Map props) {
+        def user = ShiroCrmUser.findByUsername(props.username)
+        if (!user) {
+            throw new CrmException("updateUser.not.found.message", [props.username])
+        }
+
+        // Arghhh why is not bindData available to services??????!!!!!!
+        def safeProps = props.findAll {ShiroCrmUser.BIND_WHITELIST.contains(it.key)}
+        safeProps.each {key, value ->
+            user[key] = value
+        }
+
+        if (props.password) {
+            def salt = crmSecurityService.generateSalt()
+            user.passwordHash = crmSecurityService.hashPassword(props.password, salt)
+            user.passwordSalt = salt.encodeBase64().toString()
+        }
+
+        user.save(failOnError: true, flush: true)
+
+        // Use Spring Events plugin to broadcast that a user was updated.
+        publishEvent(new UserUpdatedEvent(user))
+
+        return user
+    }
+
+    /**
      * Get user information for a user
      * @param username username or null for current user
      * @return user properties (DAO)
@@ -79,25 +112,42 @@ class ShiroCrmSecurityService {
      *
      * @param tenantName name of tenant
      * @param tenantType type of tenant
+     * @param parent parent tenant id
      * @return ShiroCrmTenant instance
      */
-    ShiroCrmTenant createTenant(String tenantName, String tenantType = null) {
+    ShiroCrmTenant createTenant(String tenantName, String tenantType, Long parent = null) {
         if (!tenantName) {
             throw new IllegalArgumentException("tenantName is null")
+        }
+        if (!tenantType) {
+            throw new IllegalArgumentException("tenantType is null")
         }
         def user = getUser()
         if (!user) {
             throw new IllegalArgumentException("not authenticated")
         }
         def tenant = ShiroCrmTenant.findByUserAndName(user, tenantName)
-        if (!tenant) {
-            user.addToAccounts(tenant = new ShiroCrmTenant(name: tenantName, type: tenantType))
-            user.save(flush: true)
-
-            // Use Spring Events plugin to broadcast that a new tenant was created.
-            // Receivers could for example assign default roles and permissions for this tenant.
-            publishEvent(new TenantCreatedEvent(tenant))
+        if (tenant) {
+            throw new IllegalArgumentException("Tenant [$tenantName] already exists")
         }
+
+        def parentTenant
+        if(parent) {
+            parentTenant = ShiroCrmTenant.get(parent)
+            if(! parentTenant) {
+                throw new IllegalArgumentException("Parent tenant [$parent] does not exist")
+            }
+        }
+
+        user.discard()
+        user = ShiroCrmUser.lock(user.id)
+        user.addToAccounts(tenant = new ShiroCrmTenant(name: tenantName, type: tenantType, parent: parentTenant))
+        user.save(flush: true)
+
+        // Use Spring Events plugin to broadcast that a new tenant was created.
+        // Receivers could for example assign default roles and permissions for this tenant.
+        publishEvent(new TenantCreatedEvent(tenant))
+
 
         return tenant
     }
@@ -232,6 +282,10 @@ class ShiroCrmSecurityService {
             throw new CrmException('shiroCrmTenant.delete.others.message', ['Account', shiroCrmTenant.name, otherPeopleAffected.join(', ')])
         }
 
+        // Now we are ready to delete!
+        currentUser.discard()
+        currentUser = ShiroCrmUser.lock(currentUser.id)
+
         // Delete my roles.
         for (userrole in affectedRoles) {
             def role = userrole.role
@@ -347,9 +401,10 @@ class ShiroCrmSecurityService {
                 throw new IllegalArgumentException("Tenant [$tenant] is not a valid tenant for user [$username]")
             }
         }
+        user.discard()
         user = ShiroCrmUser.lock(user.id)
         user.defaultTenant = tenant
-        user.save(flush:true)
+        user.save(flush: true)
     }
 
     def createRole(String rolename, List<String> permissions = []) {
@@ -377,9 +432,10 @@ class ShiroCrmSecurityService {
         }
         def userrole = ShiroCrmUserRole.findByUserAndRole(user, role)
         if (!userrole) {
+            user.discard()
             user = ShiroCrmUser.lock(user.id)
             user.addToRoles(userrole = new ShiroCrmUserRole(role: role))
-            user.save(flush:true)
+            user.save(flush: true)
         }
         return userrole
     }
@@ -392,9 +448,10 @@ class ShiroCrmSecurityService {
         }
         def perm = ShiroCrmUserPermission.findByPermissionsStringAndTenantId(permission, tenant)
         if (!perm) {
+            user.discard()
             user = ShiroCrmUser.lock(user.id)
             user.addToPermissions(perm = new ShiroCrmUserPermission(tenantId: tenant, permissionsString: permission))
-            user.save(flush:true)
+            user.save(flush: true)
         }
         return perm
     }

@@ -13,12 +13,7 @@
 <body>
 
 <div class="hero-unit clearfix visible-desktop">
-    <g:img dir="images" file="arrow-ne.png" width="128" height="128" class="pull-right"/>
     <crm:header title="auth.login.title" default="Please sign in"/>
-    <p>Här kan du som privatperson, företag eller bostadsrättsförening samla dina befintliga avtal,
-    få överblick över dina fasta kostnader och få nya avtalsförslag.
-    Logga in eller registrera dig till höger för att fortsätta.
-    </p>
 </div>
 
 <g:form action="signIn" name="loginForm" class="hidden-desktop">

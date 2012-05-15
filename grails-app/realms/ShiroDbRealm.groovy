@@ -14,6 +14,7 @@
  *  limitations under the License.
  *  under the License.
  */
+
 import org.apache.shiro.authc.AccountException
 import org.apache.shiro.authc.IncorrectCredentialsException
 import org.apache.shiro.authc.UnknownAccountException
@@ -25,12 +26,17 @@ import grails.plugins.crm.security.shiro.ShiroCrmUserRole
 import grails.plugins.crm.security.shiro.ShiroCrmUserPermission
 import grails.plugins.crm.security.shiro.ShiroCrmUser
 
+import org.springframework.web.context.request.RequestContextHolder
+import org.springframework.web.context.request.ServletRequestAttributes
+import javax.servlet.http.HttpSession
+
 class ShiroDbRealm {
     static authTokenClass = org.apache.shiro.authc.UsernamePasswordToken
 
     def credentialMatcher
     def shiroPermissionResolver
     def crmSecurityService
+    def shiroCrmSecurityService
 
     boolean supports() {
         return true
@@ -52,7 +58,7 @@ class ShiroDbRealm {
         if (!user) {
             throw new UnknownAccountException("No DB account found for user [${username}]")
         }
-        if(!user.enabled) {
+        if (!user.enabled) {
             throw new UnknownAccountException("Account is disabled [${username}]")
         }
         log.info "Found user '${user.username}' in DB"
@@ -60,7 +66,7 @@ class ShiroDbRealm {
         // Now check the user's password against the hashed value stored
         // in the database.
         def salt
-        if(user.passwordSalt) {
+        if (user.passwordSalt) {
             salt = user.passwordSalt.decodeBase64()
         } else {
             salt = username.bytes
@@ -68,12 +74,12 @@ class ShiroDbRealm {
         def account = new SimpleAccount(username, user.passwordHash, new SimpleByteSource(salt), "ShiroDbRealm")
         if (!credentialMatcher.doCredentialsMatch(authToken, account)) {
             user.loginFailures = user.loginFailures + 1
-            if(user.loginFailures > 9) {
+            if (user.loginFailures > 9) {
                 log.info "To many login failures, disabling account $user"
                 user.enabled = false
             }
-            user.save(flush:true)
-            if(!user.enabled) {
+            user.save(flush: true)
+            if (!user.enabled) {
                 throw new UnknownAccountException("Account is disabled [${username}]")
             }
 
@@ -81,18 +87,42 @@ class ShiroDbRealm {
             throw new IncorrectCredentialsException("Invalid password for user '${username}'")
         }
 
-        if(user.loginFailures > 0) {
+        if (user.loginFailures > 0) {
             log.info "Login successful, resetting login failures for $user"
             user.loginFailures = 0
         }
-        if(!user.passwordSalt) {
+        if (!user.passwordSalt) {
             log.info "Upgrading security for user ${user.username}.."
             salt = crmSecurityService.generateSalt()
             user.passwordHash = crmSecurityService.hashPassword(new String(authToken.password), salt)
             user.passwordSalt = salt.encodeBase64().toString()
         }
 
+        setDefaultTenant(username)
+
         return account
+    }
+
+    void setDefaultTenant(String username) {
+        def user = shiroCrmSecurityService.getUser(username)
+        def tenant = user?.defaultTenant
+        if (tenant == null) {
+            def availableTenants = shiroCrmSecurityService.getAllTenants(username)
+            if (!availableTenants.isEmpty()) {
+                tenant = availableTenants.get(0)
+            }
+        }
+        if (tenant != null) {
+            TenantUtils.tenant = tenant
+            def session = httpSession
+            if(session) {
+                session.tenant = tenant
+            }
+        }
+    }
+
+    public static HttpSession getHttpSession() {
+        RequestContextHolder.currentRequestAttributes().getSession(false)
     }
 
     def hasRole(principal, roleName) {
@@ -138,7 +168,7 @@ class ShiroDbRealm {
     def isPermitted(userName, requiredPermission) {
         def tenant = TenantUtils.getTenant()
         // Does the user have the given permission directly associated with himself?
-        def permissions = ShiroCrmUserPermission.withCriteria{
+        def permissions = ShiroCrmUserPermission.withCriteria {
             projections {
                 property('permissionsString')
             }
@@ -166,7 +196,7 @@ class ShiroDbRealm {
         // If not, does he gain it through a role?
         // Get the permissions from the roles that the user does have.
         //
-        def results = ShiroCrmUserRole.withCriteria{
+        def results = ShiroCrmUserRole.withCriteria {
             user {
                 eq("username", userName)
                 eq("enabled", true)
@@ -176,7 +206,7 @@ class ShiroDbRealm {
                 eq('tenantId', tenant)
             }
             cache true
-        }.collect{it.role.permissions}.flatten()
+        }.collect {it.role.permissions}.flatten()
 
         // There may be some duplicate entries in the results, but
         // at this stage it is not worth trying to remove them. Now,
@@ -190,7 +220,7 @@ class ShiroDbRealm {
             return perm.implies(requiredPermission)
         }
 
-        if(retval != null) {
+        if (retval != null) {
             log.debug "$userName@$tenant is permitted $requiredPermission by role permission [$retval]"
         } else {
             log.debug "$userName@$tenant is NOT permitted $requiredPermission"

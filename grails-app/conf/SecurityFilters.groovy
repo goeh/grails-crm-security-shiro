@@ -13,22 +13,10 @@ class SecurityFilters {
 
     def onNotAuthenticated(subject, filter) {
         // Check if the request is an Ajax one.
-        if (filter.request.xhr) {
-            // Render Ajax login
-            filter.response.sendError(401)
+        if (filter.request.xhr || filter.request.contentType?.equalsIgnoreCase("text/xml")) {
+            filter.response.sendError(401) // TODO Render Ajax login
             return false
-        }/* else {
-            // Redirect to the usual login page.
-            def request = filter.request
-            def targetURI = request.forwardURI - request.contextPath
-            if (request.queryString) {
-                if (!request.queryString.startsWith('?')) {
-                    targetURI += '?'
-                }
-                targetURI += request.queryString
-            }
-            filter.redirect(controller: "auth", action: "login", params: [targetUri: targetURI])
-        }*/
+        }
         return true
     }
 
@@ -44,7 +32,7 @@ class SecurityFilters {
                 if (publicControllers.contains(controllerName)) return true
 
                 // Exclude public controllers in Config.groovy
-                def configControllers = grailsApplication.config.crm.security.controllers.public
+                def configControllers = grailsApplication.config.crm.security.controllers.public ?: []
                 if (configControllers?.contains(controllerName)) {
                     return true
                 }
@@ -56,7 +44,7 @@ class SecurityFilters {
                 }
 
                 // Check protected controllers in Config.groovy
-                configControllers = grailsApplication.config.crm.security.controllers.protected
+                configControllers = grailsApplication.config.crm.security.controllers.protected ?: []
                 if(configControllers?.contains(controllerName) && SecurityUtils.subject?.authenticated) {
                     return true
                 }
@@ -70,8 +58,9 @@ class SecurityFilters {
 
                     // Add the ID if it's in the web parameters.
                     if (params.id) permString << ':' << params.id
-                    println "$controllerName/$actionName ---> $permString"
-                    SecurityUtils.subject.isPermitted(permString.toString())
+                    def status = SecurityUtils.subject.isPermitted(permString.toString())
+                    println "${SecurityUtils.subject?.principal}@${TenantUtils.tenant} $controllerName/$actionName ---> $permString = $status"
+                    return status
                 }
             }
         }

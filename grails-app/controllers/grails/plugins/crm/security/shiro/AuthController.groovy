@@ -22,16 +22,18 @@ import org.apache.shiro.authc.UsernamePasswordToken
 import org.apache.shiro.web.util.SavedRequest
 import org.apache.shiro.web.util.WebUtils
 import grails.plugins.crm.core.TenantUtils
+import javax.servlet.http.HttpServletResponse
 
 class AuthController {
 
     def shiroSecurityManager
     def shiroCrmSecurityService
+    def userSettingsService
 
     def index = { redirect(action: "login", params: params) }
 
     def login = {
-        return [ username: params.username, rememberMe: (params.rememberMe != null), targetUri: params.targetUri ]
+        return [username: params.username, rememberMe: (params.rememberMe != null), targetUri: params.targetUri]
     }
 
     def signIn = {
@@ -44,7 +46,7 @@ class AuthController {
 
         // If a controller redirected to this page, redirect back
         // to it. Otherwise redirect to the root URI.
-        def targetUri = params.targetUri ?: "/"
+        def targetUri = params.targetUri
 
         // Handle requests saved by Shiro filters.
         def savedRequest = WebUtils.getSavedRequest(request)
@@ -53,27 +55,30 @@ class AuthController {
             if (savedRequest.queryString) targetUri = targetUri + '?' + savedRequest.queryString
         }
 
-        try{
+        try {
             // Perform the actual login. An AuthenticationException
             // will be thrown if the username is unrecognised or the
             // password is incorrect.
             SecurityUtils.subject.login(authToken)
 
-            def tenant
-            def availableTenants = shiroCrmSecurityService.getAllTenants()
-            if(availableTenants.isEmpty()) {
-                targetUri = "/account"
-            } else {
-                tenant = shiroCrmSecurityService.getDefaultTenant() ?: availableTenants.get(0)
-            }
+            request.session.tenant = TenantUtils.tenant
 
-            TenantUtils.tenant = tenant
-            request.session.tenant = tenant
-            log.info "Tenant set to $tenant at login"
+            if ((!targetUri) || targetUri == "/") {
+                if (userSettingsService != null) {
+                    def ctrl = userSettingsService.getValue(params.username, "startController")
+                    if (ctrl) {
+                        targetUri = g.createLink(controller: ctrl).toString() - request.contextPath
+                    }
+                }
+                if(! targetUri) {
+                    targetUri = "/"
+                }
+            }
+            log.info "Tenant set to ${TenantUtils.tenant} at login"
             log.info "Redirecting to '${targetUri}'."
             redirect(uri: targetUri)
         }
-        catch (AuthenticationException ex){
+        catch (AuthenticationException ex) {
             log.error(ex.message)
             // Authentication failed, so display the appropriate message
             // on the login page.
@@ -82,7 +87,7 @@ class AuthController {
 
             // Keep the username and "remember me" setting so that the
             // user doesn't have to enter them again.
-            def m = [ username: params.username ]
+            def m = [username: params.username]
             if (params.rememberMe) {
                 m["rememberMe"] = true
             }
@@ -106,6 +111,9 @@ class AuthController {
     }
 
     def unauthorized = {
+        if (request.xhr || request.contentType?.equalsIgnoreCase("text/xml")) {
+            response.sendError(HttpServletResponse.SC_UNAUTHORIZED)
+        }
     }
 
 

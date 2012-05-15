@@ -33,14 +33,17 @@ class ShiroCrmUser {
     String username
     String name
     String email
-    String company
+    String company // Deprecated!
     String address1
     String address2
+    String address3
     String postalCode
     String city
+    String region
     String countryCode
     String currency
     String telephone
+    String mobile
     boolean enabled
     String passwordHash
     String passwordSalt
@@ -53,14 +56,17 @@ class ShiroCrmUser {
         username(size: 3..80, maxSize: 80, nullable: false, blank: false, unique: true)
         name(size: 3..80, maxSize: 80, nullable: false, blank: false)
         email(maxSize: 80, blank: false, email: true)
-        company(maxSize: 80, nullable: true)
+        company(maxSize: 80, nullable: true) // Deprecated!
         address1(maxSize: 80, nullable: true)
         address2(maxSize: 80, nullable: true)
+        address3(maxSize: 80, nullable: true)
         postalCode(size: 2..20, maxSize: 20, nullable: true)
         city(size: 2..40, maxSize: 40, nullable: true)
+        region(maxSize: 40, nullable: true)
         countryCode(size: 2..3, maxSize: 3, nullable: true)
         currency(maxSize: 4, nullable: true)
         telephone(size: 4..20, maxSize: 20, nullable: true)
+        mobile(size: 4..20, maxSize: 20, nullable: true)
         passwordHash(size: 25..255, blank: false)
         passwordSalt(maxSize: 255, blank: false)
         defaultTenant(nullable: true)
@@ -81,7 +87,7 @@ class ShiroCrmUser {
         only = ['username', 'name']
     }
 
-    static List BIND_WHITELIST = ['username', 'name', 'email', 'company', 'address1', 'address2', 'postalCode', 'city', 'countryCode', 'currency', 'telephone', 'enabled', 'defaultTenant']
+    static List BIND_WHITELIST = ['username', 'name', 'email', 'company', 'address1', 'address2', 'address3', 'postalCode', 'city', 'region', 'countryCode', 'currency', 'telephone', 'mobile', 'enabled', 'defaultTenant']
 
     /**
      * Returns the username property.
@@ -101,14 +107,14 @@ class ShiroCrmUser {
         def tenant = TenantUtils.tenant
         def allPerm = []
         if (permissions) {
-            allPerm.addAll(permissions.findAll{it.tenantId == tenant}.collect {it.toString()})
+            allPerm.addAll(permissions.findAll {it.tenantId == tenant}.collect {it.toString()})
         }
         def allRoles = []
-        for (role in roles.findAll{it.role.tenantId == tenant}) {
+        for (role in roles.findAll {it.role.tenantId == tenant}) {
             allRoles << role.toString()
             allPerm.addAll(role.role.permissions)
         }
-        def map = properties.subMap(['guid', 'username', 'name', 'email', 'company', 'address1', 'address2', 'postalCode', 'city', 'countryCode', 'currency', 'telephone', 'enabled', 'defaultTenant'])
+        def map = properties.subMap(['guid', 'username', 'name', 'email', 'company', 'address1', 'address2', 'address3', 'postalCode', 'city', 'region', 'countryCode', 'currency', 'telephone', 'mobile', 'enabled', 'defaultTenant'])
         map.roles = allRoles
         map.permissions = allPerm
         return map

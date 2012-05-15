@@ -31,10 +31,13 @@ class ShiroCrmTenant {
     // Long id of this account will be used as tenantId for all instances created by this tenant.
     String name
     String type
+    ShiroCrmTenant parent
     static belongsTo = [user: ShiroCrmUser]
+    static hasMany = [options: String]
     static constraints = {
         name(size: 3..80, maxSize: 80, nullable: false, blank: false)
         type(maxSize: 20, nullable: true)
+        parent(nullable:true)
     }
     static mapping = {
         cache usage: 'nonstrict-read-write'
@@ -57,6 +60,6 @@ class ShiroCrmTenant {
      * @return a data access object (Map) representing the domain instance.
      */
     def getDao() {
-        [id: id, name: name, type: type, user: [username: user.username, name: user.name, email: user.email], dateCreated: dateCreated]
+        [id: id, name: name, type: type, parent: parent?.id, user: [username: user.username, name: user.name, email: user.email], options: options ?: [], dateCreated: dateCreated]
     }
 }

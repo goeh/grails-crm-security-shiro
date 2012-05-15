@@ -43,7 +43,7 @@ grails.project.dependency.resolution = {
         test(":spock:latest.integration")
         test ':codenarc:latest.integration'
 
-        compile ":spring-events:1.2"
+        compile ":spring-events:1.2.1"
 
         runtime ":jquery:1.7.1"
         runtime(":twitter-bootstrap:2.0.2.24") {
