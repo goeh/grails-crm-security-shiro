@@ -86,7 +86,6 @@ class ShiroDbRealm {
             log.info "Invalid password (DB realm)"
             throw new IncorrectCredentialsException("Invalid password for user '${username}'")
         }
-
         if (user.loginFailures > 0) {
             log.info "Login successful, resetting login failures for $user"
             user.loginFailures = 0
@@ -121,8 +120,14 @@ class ShiroDbRealm {
         }
     }
 
-    public static HttpSession getHttpSession() {
-        RequestContextHolder.currentRequestAttributes().getSession(false)
+    HttpSession getHttpSession() {
+        def s
+        try {
+            s = RequestContextHolder.currentRequestAttributes().getSession(false)
+        } catch(Exception e) {
+            log.error(e)
+        }
+        return s
     }
 
     def hasRole(principal, roleName) {
