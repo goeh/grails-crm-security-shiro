@@ -28,6 +28,8 @@ class AuthController {
 
     def shiroSecurityManager
     def shiroCrmSecurityService
+    def crmSecurityService
+    def crmPluginService
     def userSettingsService
 
     def index = { redirect(action: "login", params: params) }
@@ -61,22 +63,25 @@ class AuthController {
             // password is incorrect.
             SecurityUtils.subject.login(authToken)
 
-            request.session.tenant = TenantUtils.tenant
+            println "Tenant set to ${TenantUtils.tenant} for ${params.username} at login"
 
-            if ((!targetUri) || targetUri == "/") {
-                if (userSettingsService != null) {
-                    def ctrl = userSettingsService.getValue(params.username, "startController")
-                    if (ctrl) {
-                        targetUri = g.createLink(controller: ctrl).toString() - request.contextPath
-                    }
-                }
-                if(! targetUri) {
-                    targetUri = "/"
-                }
-            }
-            log.info "Tenant set to ${TenantUtils.tenant} at login"
-            log.info "Redirecting to '${targetUri}'."
-            redirect(uri: targetUri)
+            // We don't want to send the password to event handlers so we clone params and remove it.
+            def currentUser = shiroCrmSecurityService.getUser(params.username)
+            def eventParams = currentUser?.dao ?: [:]
+            eventParams.putAll(params)
+            eventParams.remove('password')
+            eventParams.targetUri = targetUri
+
+            crmPluginService.synchronousEvent('onLogin', eventParams)
+
+            // Use Spring Events plugin to broadcast that a user logged in.
+            publishEvent(new UserLoggedInEvent(eventParams))
+
+            // An onLogin event handler may have changed targetUri so we must fetch it again.
+            targetUri = eventParams.targetUri
+
+            println "Redirecting ${params.username} to '${targetUri}'."
+            redirect(uri: targetUri ?: "/")
         }
         catch (AuthenticationException ex) {
             log.error(ex.message)
@@ -100,11 +105,25 @@ class AuthController {
             // Now redirect back to the login page.
             redirect(action: "login", params: m)
         }
+        catch (Exception e) {
+            log.error("Login failed", e)
+            SecurityUtils.subject?.logout()
+            // Redirect back to the home page.
+            flash.error = e.message
+            redirect(uri: params.targetUri ?: "/")
+        }
     }
 
     def logout = {
+        def username = crmSecurityService.currentUser?.username
+
         // Log the user out of the application.
         SecurityUtils.subject?.logout()
+
+        if (username) {
+            // Use Spring Events plugin to broadcast that a user logged out.
+            publishEvent(new UserLoggedOutEvent(username))
+        }
 
         // Redirect back to the home page.
         redirect(uri: params.targetUri ?: "/")

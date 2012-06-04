@@ -73,12 +73,11 @@ class ShiroCrmUser {
     }
 
     static mapping = {
-        cache usage: 'read-write'
-        sort "username"
-        accounts(sort: 'name')
-        //columns { enabled sqlType:"BOOLEAN" }
-        roles(cascade: "all-delete-orphan")
-        permissions(cascade: "all-delete-orphan")
+        sort 'username'
+        cache 'read-write'
+        accounts sort: 'name'
+        roles cascade: 'all-delete-orphan'
+        permissions cascade: 'all-delete-orphan'
     }
 
     static transients = ['dao']
@@ -112,11 +111,41 @@ class ShiroCrmUser {
         def allRoles = []
         for (role in roles.findAll {it.role.tenantId == tenant}) {
             allRoles << role.toString()
-            allPerm.addAll(role.role.permissions)
+            def p = role.role.permissions
+            if(p) {
+                allPerm.addAll(p)
+            } else {
+                println "Role $username/$role has no permissions"
+            }
         }
         def map = properties.subMap(['guid', 'username', 'name', 'email', 'company', 'address1', 'address2', 'address3', 'postalCode', 'city', 'region', 'countryCode', 'currency', 'telephone', 'mobile', 'enabled', 'defaultTenant'])
         map.roles = allRoles
         map.permissions = allPerm
         return map
+    }
+
+    boolean equals(o) {
+        if (this.is(o)) return true;
+        if (getClass() != o.class) return false;
+
+        ShiroCrmUser that = (ShiroCrmUser) o;
+
+        if (email != that.email) return false;
+        if (name != that.name) return false;
+        if (passwordHash != that.passwordHash) return false;
+        if (passwordSalt != that.passwordSalt) return false;
+        if (username != that.username) return false;
+
+        return true;
+    }
+
+    int hashCode() {
+        int result;
+        result = (username != null ? username.hashCode() : 0);
+        result = 31 * result + (name != null ? name.hashCode() : 0);
+        result = 31 * result + (email != null ? email.hashCode() : 0);
+        result = 31 * result + (passwordHash != null ? passwordHash.hashCode() : 0);
+        result = 31 * result + (passwordSalt != null ? passwordSalt.hashCode() : 0);
+        return result;
     }
 }

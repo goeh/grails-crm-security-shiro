@@ -40,12 +40,12 @@ class ShiroCrmRole {
     }
     static mapping = {
         sort 'name'
-        cache usage:'nonstrict-read-write'
-        permissions(cascade: "all-delete-orphan")
+        cache 'nonstrict-read-write'
+        permissions cascade: 'all-delete-orphan', cache: 'nonstrict-read-write'
     }
 
     @Override
     String toString() {
-        return name
+        return name.toString()
     }
 }

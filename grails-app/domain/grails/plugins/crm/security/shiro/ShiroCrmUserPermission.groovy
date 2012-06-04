@@ -33,11 +33,11 @@ class ShiroCrmUserPermission {
 
     static belongsTo = [user:ShiroCrmUser]
 
-    static constraints = {
-        permissionsString(maxSize:255, blank:false)
+    static mapping = {
+        cache 'nonstrict-read-write'
     }
 
     String toString() {
-        "$permissionsString"
+        permissionsString.toString()
     }
 }

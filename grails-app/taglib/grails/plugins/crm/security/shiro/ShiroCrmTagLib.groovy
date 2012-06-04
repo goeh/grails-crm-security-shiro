@@ -36,4 +36,19 @@ class ShiroCrmTagLib {
             out << body(map)
         }
     }
+
+    def permissionList = {attrs, body ->
+        def permissions = attrs.permission ?: attrs.permissions
+        if (!(permissions instanceof Collection)) {
+            permissions = [permissions]
+        }
+        int i = 0
+        for (p in permissions) {
+            def map = [(attrs.var ?: 'it'): [label: message(code: p, default: p), permission: p]]
+            if (attrs.status) {
+                map[attrs.status] = i++
+            }
+            out << body(map)
+        }
+    }
 }

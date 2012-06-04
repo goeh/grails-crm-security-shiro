@@ -17,7 +17,7 @@ grails.project.dependency.resolution = {
         grailsCentral()
         // uncomment the below to enable remote dependency resolution
         // from public Maven repositories
-        //mavenCentral()
+        mavenCentral()
         //mavenLocal()
         mavenRepo "http://labs.technipelago.se/repo/plugins-releases-local/"
         mavenRepo "http://labs.technipelago.se/repo/crm-releases-local/"
@@ -35,7 +35,7 @@ grails.project.dependency.resolution = {
     plugins {
         runtime ":hibernate:$grailsVersion"
         build(":tomcat:$grailsVersion",
-                ":release:2.0.0") {
+                ":release:2.0.2") {
             export = false
         }
         compile ':shiro:latest.integration'
@@ -54,6 +54,9 @@ grails.project.dependency.resolution = {
         runtime ":mail:1.0"
 
         compile "grails.crm:crm-core:latest.integration"
+
+        compile ":cache:1.0.0.BUILD-SNAPSHOT"
+        //compile ":cache-ehcache:1.0.0.M2"
     }
 }
 

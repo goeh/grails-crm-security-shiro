@@ -27,8 +27,12 @@ package grails.plugins.crm.security.shiro
 class ShiroCrmUserRole {
 
     ShiroCrmRole role
+    java.sql.Date expires
     static belongsTo = [user: ShiroCrmUser]
-
+    static constraints = {
+        role()
+        expires(nullable:true)
+    }
     String toString() {
         role.toString()
     }

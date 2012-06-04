@@ -29,19 +29,21 @@ import grails.plugins.crm.core.AuditEntity
 class ShiroCrmTenant {
 
     // Long id of this account will be used as tenantId for all instances created by this tenant.
+    java.sql.Date endDate
     String name
     String type
     ShiroCrmTenant parent
     static belongsTo = [user: ShiroCrmUser]
     static hasMany = [options: String]
     static constraints = {
+        endDate(nullable:true)
         name(size: 3..80, maxSize: 80, nullable: false, blank: false)
         type(maxSize: 20, nullable: true)
         parent(nullable:true)
     }
     static mapping = {
-        cache usage: 'nonstrict-read-write'
-        sort "name"
+        sort 'name'
+        cache 'nonstrict-read-write'
     }
 
     static transients = ['dao']
@@ -60,6 +62,8 @@ class ShiroCrmTenant {
      * @return a data access object (Map) representing the domain instance.
      */
     def getDao() {
-        [id: id, name: name, type: type, parent: parent?.id, user: [username: user.username, name: user.name, email: user.email], options: options ?: [], dateCreated: dateCreated]
+        [id: id, name: name, type: type, parent: parent?.id,
+                user: [username: user.username, name: user.name, email: user.email],
+                options: options ?: [], dateCreated: dateCreated, endDate:endDate]
     }
 }

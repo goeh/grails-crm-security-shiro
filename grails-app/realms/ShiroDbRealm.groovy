@@ -170,6 +170,21 @@ class ShiroDbRealm {
         return result.size() == roles.size()
     }
 
+    private boolean implies(Object requiredPermission, String permString) {
+        def namedPermissions = shiroCrmSecurityService.getNamedPermission(permString)
+        if(namedPermissions) {
+            for(p in namedPermissions) {
+                if(implies(requiredPermission, p)) {
+                    return true
+                }
+            }
+        }
+        // Create a real permission instance from the database permission.
+        def perm = shiroPermissionResolver.resolvePermission(permString)
+        // Now check whether this permission implies the required one.
+        return perm.implies(requiredPermission)
+    }
+
     def isPermitted(userName, requiredPermission) {
         def tenant = TenantUtils.getTenant()
         // Does the user have the given permission directly associated with himself?
@@ -186,12 +201,7 @@ class ShiroDbRealm {
         }
         // Try each of the permissions found and see whether any of
         // them confer the required permission.
-        def retval = permissions.find { permString ->
-            // Create a real permission instance from the database permission.
-            def perm = shiroPermissionResolver.resolvePermission(permString)
-            // Now check whether this permission implies the required one.
-            return perm.implies(requiredPermission)
-        }
+        def retval = permissions.find { implies(requiredPermission, it) }
 
         if (retval != null) {
             log.debug "$userName@$tenant is permitted $requiredPermission by user permission [$retval]"
@@ -217,13 +227,7 @@ class ShiroDbRealm {
         // at this stage it is not worth trying to remove them. Now,
         // create a real permission from each result and check it
         // against the required one.
-        retval = results.find { permString ->
-            // Create a real permission instance from the database
-            // permission.
-            def perm = shiroPermissionResolver.resolvePermission(permString)
-            // Now check whether this permission implies the required one.
-            return perm.implies(requiredPermission)
-        }
+        retval = results.find { implies(requiredPermission, it) }
 
         if (retval != null) {
             log.debug "$userName@$tenant is permitted $requiredPermission by role permission [$retval]"

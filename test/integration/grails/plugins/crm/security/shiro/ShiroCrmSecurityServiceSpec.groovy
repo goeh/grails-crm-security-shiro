@@ -94,7 +94,7 @@ class ShiroCrmSecurityServiceSpec extends grails.plugin.spock.IntegrationSpec {
 
         when:
         crmSecurityService.runAs("test") {
-            shiroCrmSecurityService.createTenant("My First Tenant")
+            shiroCrmSecurityService.createTenant("My First Tenant", "simple")
             shiroCrmSecurityService.createTenant("My Second Tenant", "test")
             result = crmSecurityService.getTenants()
         }
@@ -180,11 +180,11 @@ class ShiroCrmSecurityServiceSpec extends grails.plugin.spock.IntegrationSpec {
 
         given:
         shiroCrmSecurityService.createUser([username: "test", name: "Test User", email: "test@test.com", password: "test123", enabled: true])
-
+        shiroCrmSecurityService.addNamedPermission("test", "test:*")
 
         when:
         crmSecurityService.runAs("test") {
-            tenant = shiroCrmSecurityService.createTenant("Test Tenant")
+            tenant = shiroCrmSecurityService.createTenant("Test Tenant", "test")
         }
         then:
         tenant != null
@@ -210,7 +210,7 @@ class ShiroCrmSecurityServiceSpec extends grails.plugin.spock.IntegrationSpec {
 
         when:
         TenantUtils.withTenant(tenant.id) {
-            shiroCrmSecurityService.addUserPermission("test", "test:*")
+            shiroCrmSecurityService.addUserPermission("test", "test")
             crmSecurityService.runAs("test") {
                 result = crmSecurityService.isPermitted("test:protected")
                 SecurityUtils.subject.checkPermission("test:protected")
@@ -228,12 +228,13 @@ class ShiroCrmSecurityServiceSpec extends grails.plugin.spock.IntegrationSpec {
 
         given:
         shiroCrmSecurityService.createUser([username: "test", name: "Test User", email: "test@test.com", password: "test123", enabled: true])
+        shiroCrmSecurityService.addNamedPermission("test", "test:*")
 
         when:
         crmSecurityService.runAs("test") {
-            tenant = shiroCrmSecurityService.createTenant("Test Tenant")
+            tenant = shiroCrmSecurityService.createTenant("Test Tenant", "test")
             TenantUtils.withTenant(tenant.id) {
-                shiroCrmSecurityService.addUserPermission("test", "test:*")
+                shiroCrmSecurityService.addUserPermission("test", "test")
             }
         }
         then:
