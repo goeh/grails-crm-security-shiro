@@ -16,6 +16,8 @@
 */
 
 import grails.plugins.crm.security.shiro.ShiroCrmSecurityDelegate
+import grails.plugins.crm.security.shiro.ResetPasswordDelegate
+import grails.plugins.crm.security.shiro.ControllerGroupMapper
 
 class CrmSecurityShiroGrailsPlugin {
     // Dependency group
@@ -28,7 +30,6 @@ class CrmSecurityShiroGrailsPlugin {
     def dependsOn = [:]
     // Load after crm-core
     def loadAfter = ['crmCore', 'shiro']
-
     // resources that are excluded from plugin packaging
     def pluginExcludes = [
             "grails-app/views/error.gsp"
@@ -41,28 +42,23 @@ class CrmSecurityShiroGrailsPlugin {
 This plugin leverage the shiro plugin to authenticate/authorize Grails CRM users.
 '''
 
-    // URL to the plugin's documentation
     def documentation = "https://github.com/goeh/grails-crm-security-shiro"
-
-    // Extra (optional) plugin metadata
-
-    // License: one of 'APACHE', 'GPL2', 'GPL3'
     def license = "APACHE"
-
-    // Details of company behind the plugin (if there is one)
     def organization = [name: "Technipelago AB", url: "http://www.technipelago.se/"]
-
-    // Any additional developers beyond the author specified above.
-    //    def developers = [ [ name: "Joe Bloggs", email: "joe@bloggs.net" ]]
-
-    // Location of the plugin's issue tracker.
-    def issueManagement = [system: "GITHUB", url: "https://github.com/goeh/grails-crm-security-shiro/issues"]
-
-    // Online location of the plugin's browseable source code.
+    def issueManagement = [system: "github", url: "https://github.com/goeh/grails-crm-security-shiro/issues"]
     def scm = [url: "https://github.com/goeh/grails-crm-security-shiro"]
 
-    def doWithWebDescriptor = { xml ->
-        // TODO Implement additions to web.xml (optional), this event occurs before
+    def features = {
+        register {
+            description "User Registration"
+            main controller: 'crmRegister'
+            enabled true
+        }
+        password {
+            description "Reset Password"
+            main controller: 'resetPassword'
+            enabled true
+        }
     }
 
     def doWithSpring = {
@@ -73,31 +69,14 @@ This plugin leverage the shiro plugin to authenticate/authorize Grails CRM users
         }
         crmSecurityDelegate(ShiroCrmSecurityDelegate) {
             shiroSecurityManager = ref('shiroSecurityManager')
-            credentialMatcher = cm//ref('credentialMatcher')
+            credentialMatcher = cm
         }
-        controllerGroupMapper(grails.plugins.crm.security.shiro.ControllerGroupMapper) {
+        resetPasswordDelegate(ResetPasswordDelegate) {bean ->
+            bean.autowire = "byName"
+        }
+        controllerGroupMapper(ControllerGroupMapper) {
             grailsApplication = application
         }
     }
 
-    def doWithDynamicMethods = { ctx ->
-        // TODO Implement registering dynamic methods to classes (optional)
-    }
-
-    def doWithApplicationContext = { applicationContext ->
-        // TODO Implement post initialization spring config (optional)
-    }
-
-    def onChange = { event ->
-        initSecurity(event.ctx)
-    }
-
-    def onConfigChange = { event ->
-        // TODO Implement code that is executed when the project configuration changes.
-        // The event is the same as for 'onChange'.
-    }
-
-    def onShutdown = { event ->
-        // TODO Implement code that is executed when the application shuts down (optional)
-    }
 }

@@ -134,8 +134,4 @@ class AuthController {
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED)
         }
     }
-
-
-    def password = {
-    }
 }

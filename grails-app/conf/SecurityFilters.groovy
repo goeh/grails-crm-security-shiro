@@ -8,7 +8,7 @@ class SecurityFilters {
 
     def dependsOn = [CrmTenantFilters]
 
-    def publicControllers = [/*"auth"*/]
+    def publicControllers = []
     def authenticatedControllers = ["welcome", "account", "settings"]
 
     def onNotAuthenticated(subject, filter) {

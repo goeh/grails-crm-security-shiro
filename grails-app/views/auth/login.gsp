@@ -5,8 +5,8 @@
     <title><g:message code="auth.login.title" default="Login"/></title>
     <r:script>
         $(document).ready(function() {
-            $("#login-username").focus();
-        });
+            $("input[name='username']:visible:first").focus();
+        })
     </r:script>
 </head>
 
@@ -27,7 +27,7 @@
                                                                default="Username"/></label>
 
         <div class="controls">
-            <g:textField name="username" value="${username}" autofocus=""/>
+            <g:textField name="username" value="${username}"/>
         </div>
     </div>
 
@@ -46,19 +46,11 @@
 
 </g:form>
 
-<g:content tag="sidebar">
-
-    <div class="well">
-
-        <ul class="nav nav-list">
-            <li><g:link mapping="register"><g:message code="register.invite.label"
-                                                      default="No account yet? Create one now!"/></g:link></li>
-            <li><g:link mapping="password"><g:message code="auth.password.forgot.label"
-                                                      default="Forgot password?"/></g:link></li>
-        </ul>
-    </div>
-
-</g:content>
+<div style="margin-left: 2em;">
+    <crm:featureLink feature="register">&raquo; <g:message code="auth.register.label"
+                                                  default="No account yet? Create one now!"/></crm:featureLink><br/>
+    <crm:featureLink feature="password">&raquo; <g:message code="auth.password.forgot.label"/></crm:featureLink>
+</div>
 
 </body>
 </html>
