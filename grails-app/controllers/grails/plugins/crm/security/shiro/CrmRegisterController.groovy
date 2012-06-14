@@ -154,7 +154,8 @@ class CrmRegisterController {
         if (user) {
             shiroCrmSecurityService.setUserStatus(user, true)
             //SecurityUtils.subject.login(new UsernamePasswordToken(cmd.username, cmd.password))
-            return [user: user]
+            def targetUri = grailsApplication.config.crm.register.welcome.url ?: "/welcome"
+            return [user: user, targetUri: targetUri]
         } else {
             response.sendError(HttpServletResponse.SC_NOT_FOUND)
         }

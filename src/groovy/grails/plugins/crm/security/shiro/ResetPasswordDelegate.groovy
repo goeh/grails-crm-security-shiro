@@ -22,22 +22,28 @@ package grails.plugins.crm.security.shiro
 class ResetPasswordDelegate {
 
     def shiroCrmSecurityService
+    def grailsApplication
 
     def verifyAccount(Map params) {
         def user = ShiroCrmUser.findByUsername(params.username)
         if (user) {
-            println "Verifying account ${user.username} - ${user.name} ---> $params"
-            if(user.email.equalsIgnoreCase(params.email) && equalsIgnoreSpace(user.postalCode, params.postalCode)) {
-                return user.username
+            println "resetPassword: Verifying account ${user.username} - ${user.name} ---> $params"
+            if (!user.email.equalsIgnoreCase(params.email)) {
+                return null
             }
+            if (grailsApplication.config.reset.password.step1.fields?.contains('postalCode')
+                    && !equalsIgnoreSpace(user.postalCode, params.postalCode)) {
+                return null
+            }
+            return user.username
         } else {
-            println "User [${params.username}] not found"
+            println "resetPassword: User [${params.username}] not found"
         }
         return null
     }
 
     private boolean equalsIgnoreSpace(String arg1, String arg2) {
-        if(arg1 && arg2) {
+        if (arg1 && arg2) {
             return arg1.replaceAll(/\s/, '').equalsIgnoreCase(arg2.replaceAll(/\s/, ''))
         }
         return false
@@ -48,13 +54,13 @@ class ResetPasswordDelegate {
     }
 
     def resetPassword(String username, String password) {
-        println "Changing password for [$username]"
-        shiroCrmSecurityService.updateUser([username: username, password: password])
+        println "resetPassword: Changing password for [$username]"
+        shiroCrmSecurityService.updateUser([username: username, password: password, enabled:true, loginFailures: 0])
         return username
     }
 
     def disableAccount(String username) {
-        println "Disabling account [$username]"
+        println "resetPassword: Disabling account [$username]"
         def user = ShiroCrmUser.findByUsername(username)
         if (user) {
             user.enabled = false

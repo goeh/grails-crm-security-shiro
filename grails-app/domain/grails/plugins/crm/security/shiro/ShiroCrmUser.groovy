@@ -90,7 +90,7 @@ class ShiroCrmUser {
         only = ['username', 'name']
     }
 
-    static List BIND_WHITELIST = ['username', 'name', 'email', 'company', 'address1', 'address2', 'address3', 'postalCode', 'city', 'region', 'countryCode', 'currency', 'timezone', 'telephone', 'mobile', 'enabled', 'campaign', 'defaultTenant']
+    static List BIND_WHITELIST = ['username', 'name', 'email', 'company', 'address1', 'address2', 'address3', 'postalCode', 'city', 'region', 'countryCode', 'currency', 'timezone', 'telephone', 'mobile', 'campaign', 'enabled', 'loginFailures', 'defaultTenant']
 
     /**
      * Returns the username property.

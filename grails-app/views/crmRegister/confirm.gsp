@@ -30,7 +30,7 @@
 
         <div class="form-actions">
             <crm:button type="link" controller="auth" action="login"
-                        params="${[username:user.username, targetUri:'/welcome']}" visual="primary"
+                        params="${[username: user.username, targetUri: targetUri]}" visual="primary"
                         icon="icon-arrow-right icon-white" label="register.button.continue.label"/>
         </div>
 

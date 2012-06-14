@@ -10,7 +10,6 @@
 <g:content tag="hero">
     <div class="hero-unit">
         <h1><g:message code="register.verify.title"/></h1>
-
     </div>
 </g:content>
 
@@ -19,8 +18,7 @@
     <div class="row-fluid">
 
         <div class="span5">
-            <g:img dir="images/avtala" file="kvinna.png" class="hidden-phone"
-                   style="margin-left:-19px;margin-bottom: -19px;"/>
+            <p>&nbsp;</p>
         </div>
 
         <div class="span7">
