@@ -106,7 +106,7 @@ class ShiroCrmUser {
      * String postalCode, String city, String countryCode, String telephone, boolean enabled, boolean defaultTenant]
      * @return a data access object (Map) representing the domain instance.
      */
-    def getDao() {
+    Map<String, Object> getDao() {
         def tenant = TenantUtils.tenant
         def allPerm = []
         if (permissions) {

@@ -35,7 +35,7 @@ grails.project.dependency.resolution = {
     plugins {
         runtime ":hibernate:$grailsVersion"
         build(":tomcat:$grailsVersion",
-                ":release:2.0.2") {
+                ":release:2.0.3") {
             export = false
         }
         compile ':shiro:latest.integration'
@@ -57,6 +57,8 @@ grails.project.dependency.resolution = {
 
         compile ":cache:1.0.0.BUILD-SNAPSHOT"
         //compile ":cache-ehcache:1.0.0.M2"
+
+        runtime "grails.crm:crm-feature:latest.integration"
     }
 }
 

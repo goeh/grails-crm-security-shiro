@@ -61,7 +61,7 @@ class ShiroCrmTenant {
      * The following properties are returned as a Map: [Long id, String name, String type, Map user [username, name, email]]
      * @return a data access object (Map) representing the domain instance.
      */
-    def getDao() {
+    Map<String, Object> getDao() {
         [id: id, name: name, type: type, parent: parent?.id,
                 user: [username: user.username, name: user.name, email: user.email],
                 options: options ?: [], dateCreated: dateCreated, endDate:endDate]

@@ -24,10 +24,10 @@ class ShiroCrmTagLib {
 
     static namespace = "crm"
 
-    def shiroCrmSecurityService
+    def crmSecurityService
 
     def eachAccount = {attrs, body ->
-        def list = shiroCrmSecurityService.getUserTenants()
+        def list = crmSecurityService.getTenants()
         list.eachWithIndex {s, i ->
             def map = [(attrs.var ?: 'it'): s]
             if (attrs.status) {

@@ -30,31 +30,6 @@ class ShiroCrmSecurityService {
     def crmSecurityService
 
     /**
-     * Create new user.
-     *
-     * @param props user domain properties
-     *
-     * @return ShiroCrmUser instance
-     */
-    ShiroCrmUser createUser(Map props) {
-        if (ShiroCrmUser.findByUsername(props.username)) {
-            throw new CrmException("createUser.user.exists.error", [props.username])
-        }
-        def safeProps = props.findAll {ShiroCrmUser.BIND_WHITELIST.contains(it.key)}
-        def user = new ShiroCrmUser(safeProps)
-        def salt = crmSecurityService.generateSalt()
-        user.passwordHash = crmSecurityService.hashPassword(props.password, salt)
-        user.passwordSalt = salt.encodeBase64().toString()
-
-        user.save(failOnError: true, flush: true)
-
-        // Use Spring Events plugin to broadcast that a new user was created.
-        publishEvent(new UserCreatedEvent(user))
-
-        return user
-    }
-
-    /**
      * Update user information.
      *
      * @param props user domain properties
@@ -88,15 +63,6 @@ class ShiroCrmSecurityService {
     }
 
     /**
-     * Get user information for a user
-     * @param username username or null for current user
-     * @return user properties (DAO)
-     */
-    def getUserInfo(String username = null) {
-        getUser(username)?.dao
-    }
-
-    /**
      * Return the user domain instance for the current user.
      *
      * @param username (optional) username or null for current user
@@ -106,107 +72,7 @@ class ShiroCrmSecurityService {
         if (!username) {
             username = crmSecurityService.currentUser?.username
         }
-        username ? ShiroCrmUser.findByUsername(username) : null
-    }
-
-    /**
-     * Create new tenant.
-     *
-     * @param tenantName name of tenant
-     * @param tenantType type of tenant
-     * @param parent parent tenant id
-     * @return ShiroCrmTenant instance
-     */
-    ShiroCrmTenant createTenant(String tenantName, String tenantType, Long parent = null) {
-        if (!tenantName) {
-            throw new IllegalArgumentException("tenantName is null")
-        }
-        if (!tenantType) {
-            throw new IllegalArgumentException("tenantType is null")
-        }
-        def user = getUser()
-        if (!user) {
-            throw new IllegalArgumentException("not authenticated")
-        }
-        def tenant = ShiroCrmTenant.findByUserAndName(user, tenantName)
-        if (tenant) {
-            throw new IllegalArgumentException("Tenant [$tenantName] already exists")
-        }
-
-        def parentTenant
-        if (parent) {
-            parentTenant = ShiroCrmTenant.get(parent)
-            if (!parentTenant) {
-                throw new IllegalArgumentException("Parent tenant [$parent] does not exist")
-            }
-        }
-
-        user.discard()
-        user = ShiroCrmUser.lock(user.id)
-        user.addToAccounts(tenant = new ShiroCrmTenant(name: tenantName, type: tenantType, parent: parentTenant))
-        user.save(flush: true)
-
-        // Use Spring Events plugin to broadcast that a new tenant was created.
-        // Receivers could for example assign default roles and permissions for this tenant.
-        publishEvent(new TenantCreatedEvent(tenant))
-
-
-        return tenant
-    }
-
-    /**
-     * Get tenant information.
-     * @param id tenant ID
-     * @return tenant properties (DAO)
-     */
-    def tenantInfo(Long id) {
-        def tenant = ShiroCrmTenant.get(id)
-        if (!tenant) {
-            throw new IllegalArgumentException("Tenant not found: $id")
-        }
-        return tenant.dao
-    }
-
-    /**
-     * Check that a user has any permission to access a tenant.
-     * This method looks for roles and permissions in the specified tenant.
-     *
-     * @param id tenant ID
-     * @param username username to check
-     * @return true if the user has a role or permission in the given tenant
-     */
-    boolean isValidTenant(Long id, String username) {
-
-        // Owns this tenant
-        def tenant = ShiroCrmTenant.get(id)
-        if (tenant != null && tenant.user.username == username) {
-            return true
-        }
-
-        // Have role in this tenant?
-        if (ShiroCrmUserRole.createCriteria().count {
-            user {
-                eq('username', username)
-            }
-            role {
-                eq('tenantId', id)
-            }
-            cache true
-        } > 0) {
-            return true
-        }
-
-        // Have permission in this tenant?
-        if (ShiroCrmUserPermission.createCriteria().count {
-            user {
-                eq('username', username)
-            }
-            eq('tenantId', id)
-            cache true
-        } > 0) {
-            return true
-        }
-        return false
+        username ? ShiroCrmUser.findByUsername(username, [cache:true]) : null
     }
 
     /**
@@ -271,6 +137,7 @@ class ShiroCrmSecurityService {
             role {
                 eq('tenantId', id)
             }
+            cache true
         }
         def otherPeopleAffected = affectedRoles.findAll {it.user.id != currentUser.id}.collect {it.user}
         if (otherPeopleAffected) {
@@ -321,7 +188,7 @@ class ShiroCrmSecurityService {
             }
         }
         def result = new HashSet<Long>()
-        def user = ShiroCrmUser.findByUsername(username)
+        def user = ShiroCrmUser.findByUsername(username, [cache:true])
         if (user) {
             // Owned tenants
             def tmp = ShiroCrmTenant.findAllByUser(user)*.id
@@ -359,7 +226,7 @@ class ShiroCrmSecurityService {
             def tenants = getAllTenants(username)
             def currentTenant = TenantUtils.tenant
             result = tenants.sort {it}.collect {
-                def info = tenantInfo(it)
+                def info = crmSecurityService.getTenantInfo(it)
                 def extra = [current: currentTenant == it, my: info.user.username == username]
                 return info + extra
             }
@@ -416,7 +283,7 @@ class ShiroCrmSecurityService {
      */
     @CacheEvict(value = 'permissions', key = '#name')
     void addNamedPermission(String name, Object permissions) {
-        def perm = ShiroCrmNamedPermission.findByName(name)
+        def perm = ShiroCrmNamedPermission.findByName(name, [cache:true])
         if (!perm) {
             perm = new ShiroCrmNamedPermission(name: name)
             if (!(permissions instanceof Collection)) {
@@ -442,7 +309,7 @@ class ShiroCrmSecurityService {
      */
     ShiroCrmRole createRole(String rolename, List<String> permissions = []) {
         def tenant = TenantUtils.getTenant()
-        def role = ShiroCrmRole.findByNameAndTenantId(rolename, tenant)
+        def role = ShiroCrmRole.findByNameAndTenantId(rolename, tenant, [cache:true])
         if (role) {
             throw new IllegalArgumentException("Role [$rolename] already exists")
         }
@@ -455,15 +322,15 @@ class ShiroCrmSecurityService {
 
     ShiroCrmUserRole addUserRole(String username, String rolename, Date expires = null) {
         def tenant = TenantUtils.getTenant()
-        def role = ShiroCrmRole.findByNameAndTenantId(rolename, tenant)
+        def role = ShiroCrmRole.findByNameAndTenantId(rolename, tenant, [cache:true])
         if (!role) {
             throw new IllegalArgumentException("role [$rolename] not found")
         }
-        def user = ShiroCrmUser.findByUsername(username)
+        def user = ShiroCrmUser.findByUsername(username, [cache:true])
         if (!user) {
             throw new IllegalArgumentException("user [$username] not found")
         }
-        def userrole = ShiroCrmUserRole.findByUserAndRole(user, role)
+        def userrole = ShiroCrmUserRole.findByUserAndRole(user, role, [cache:true])
         if (!userrole) {
             def expiryDate = expires != null ? new java.sql.Date(expires.time) : null
             user.discard()
@@ -476,7 +343,7 @@ class ShiroCrmSecurityService {
 
     ShiroCrmUserPermission addUserPermission(String username, String permission) {
         def tenant = TenantUtils.getTenant()
-        def user = ShiroCrmUser.findByUsername(username)
+        def user = ShiroCrmUser.findByUsername(username, [cache:true])
         if (!user) {
             throw new IllegalArgumentException("user [$username] not found")
         }
@@ -484,6 +351,7 @@ class ShiroCrmSecurityService {
             eq('user', user)
             eq('tenantId', tenant)
             eq('permissionsString', permission)
+            cache true
         }
         if (!perm) {
             user.discard()
@@ -519,6 +387,7 @@ class ShiroCrmSecurityService {
                 eq('tenantId', tenant)
             }
             order 'id', 'asc'
+            cache true
         }
         if (roles) {
             result.addAll(roles)
@@ -527,6 +396,7 @@ class ShiroCrmSecurityService {
         def permissions = ShiroCrmUserPermission.createCriteria().list() {
             eq('tenantId', tenant)
             order 'id', 'asc'
+            cache true
         }
         if (permissions) {
             result.addAll(permissions)
