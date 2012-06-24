@@ -23,7 +23,7 @@ class CrmSecurityShiroGrailsPlugin {
     // Dependency group
     def groupId = "grails.crm"
     // the plugin version
-    def version = "0.9.4.1"
+    def version = "0.9.5"
     // the version or versions of Grails the plugin is designed for
     def grailsVersion = "2.0 > *"
     // the other plugins this plugin depends on
@@ -62,16 +62,13 @@ This plugin leverage the shiro plugin to authenticate/authorize Grails CRM users
     }
 
     def doWithSpring = {
-        /*def cm = */credentialMatcher(org.apache.shiro.authc.credential.Sha512CredentialsMatcher) {
+        credentialMatcher(org.apache.shiro.authc.credential.Sha512CredentialsMatcher) {
             storedCredentialsHexEncoded = true
             hashSalted = true
             hashIterations = 1000
         }
         crmSecurityDelegate(ShiroCrmSecurityDelegate) {bean->
             bean.autowire = "byName"
-            //shiroSecurityManager = ref('shiroSecurityManager')
-            //credentialMatcher = cm
-            //asyncEventPublisher = ref('asyncEventPublisher')
         }
         resetPasswordDelegate(ResetPasswordDelegate) {bean ->
             bean.autowire = "byName"

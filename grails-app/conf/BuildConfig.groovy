@@ -38,7 +38,7 @@ grails.project.dependency.resolution = {
                 ":release:2.0.3") {
             export = false
         }
-        compile ':shiro:latest.integration'
+        compile ':shiro:1.1.4'
 
         test(":spock:latest.integration")
         test ':codenarc:latest.integration'
