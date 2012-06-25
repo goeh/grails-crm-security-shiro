@@ -34,7 +34,7 @@ class ShiroCrmTenant {
     String type
     ShiroCrmTenant parent
     static belongsTo = [user: ShiroCrmUser]
-    static hasMany = [options: String]
+    static hasMany = [options: ShiroCrmTenantOption]
     static constraints = {
         endDate(nullable:true)
         name(size: 3..80, maxSize: 80, nullable: false, blank: false)
@@ -46,7 +46,7 @@ class ShiroCrmTenant {
         cache 'nonstrict-read-write'
     }
 
-    static transients = ['dao']
+    static transients = ['dao', 'option']
 
     /**
      * Returns the name property.
@@ -64,6 +64,41 @@ class ShiroCrmTenant {
     Map<String, Object> getDao() {
         [id: id, name: name, type: type, parent: parent?.id,
                 user: [username: user.username, name: user.name, email: user.email],
-                options: options ?: [], dateCreated: dateCreated, endDate:endDate]
+                options: getOptionsMap(), dateCreated: dateCreated, endDate:endDate]
+    }
+
+    /**
+     * Return tenant parameters (options) as a Map.
+     *
+     * @return options
+     */
+    private Map<String, Object> getOptionsMap() {
+        options.inject([:]) {map, o->
+            map[o.key] = o.value
+            map
+        }
+    }
+
+    void setOption(String key, Object value) {
+        def o = options.find{it.key == key}
+        if(o) {
+            o.value = value
+        } else {
+            o = new ShiroCrmTenantOption(key, value)
+            addToOptions(o)
+        }
+    }
+
+    def getOption(String key) {
+        options.find{it.key == key}?.value
+    }
+
+    boolean removeOption(String key) {
+        def o = options.find{it.key == key}
+        if(o) {
+            removeFromOptions(o)
+            return true
+        }
+        return false
     }
 }

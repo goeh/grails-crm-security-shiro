@@ -118,9 +118,11 @@ class ShiroCrmSecurityDelegate implements SecurityServiceDelegate {
         }
         def safeProps = props.findAll {ShiroCrmUser.BIND_WHITELIST.contains(it.key)}
         def user = new ShiroCrmUser(safeProps)
-        def salt = generateSalt()
-        user.passwordHash = hashPassword(props.password, salt)
-        user.passwordSalt = salt.encodeBase64().toString()
+        if(props.password) {
+            def salt = generateSalt()
+            user.passwordHash = hashPassword(props.password, salt)
+            user.passwordSalt = salt.encodeBase64().toString()
+        }
 
         user.save(failOnError: true, flush: true)
 

@@ -24,19 +24,6 @@ class ShiroCrmTagLib {
 
     static namespace = "crm"
 
-    def crmSecurityService
-
-    def eachAccount = {attrs, body ->
-        def list = crmSecurityService.getTenants()
-        list.eachWithIndex {s, i ->
-            def map = [(attrs.var ?: 'it'): s]
-            if (attrs.status) {
-                map[attrs.status] = i
-            }
-            out << body(map)
-        }
-    }
-
     def permissionList = {attrs, body ->
         def permissions = attrs.permission ?: attrs.permissions
         if (!(permissions instanceof Collection)) {

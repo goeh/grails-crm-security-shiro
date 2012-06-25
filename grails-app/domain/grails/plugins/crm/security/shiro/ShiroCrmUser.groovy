@@ -122,7 +122,7 @@ class ShiroCrmUser {
                 println "Role $username/$role has no permissions"
             }
         }
-        def map = properties.subMap(['guid', 'username', 'name', 'email', 'company', 'address1', 'address2', 'address3', 'postalCode', 'city', 'region', 'countryCode', 'currency', 'telephone', 'mobile', 'enabled', 'campaign', 'defaultTenant'])
+        def map = properties.subMap(['id', 'guid', 'username', 'name', 'email', 'company', 'address1', 'address2', 'address3', 'postalCode', 'city', 'region', 'countryCode', 'currency', 'telephone', 'mobile', 'enabled', 'campaign', 'defaultTenant'])
         def tz = timezone ? TimeZone.getTimeZone(timezone) : TimeZone.getDefault()
         map.timezone = tz
         map.roles = allRoles
