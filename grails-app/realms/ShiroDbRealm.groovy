@@ -35,7 +35,6 @@ class ShiroDbRealm {
 
     def credentialMatcher
     def shiroPermissionResolver
-    def crmSecurityService
     def shiroCrmSecurityService
 
     boolean supports() {
@@ -92,8 +91,8 @@ class ShiroDbRealm {
         }
         if (!user.passwordSalt) {
             log.info "Upgrading security for user ${user.username}.."
-            salt = crmSecurityService.generateSalt()
-            user.passwordHash = crmSecurityService.hashPassword(new String(authToken.password), salt)
+            salt = shiroCrmSecurityService.generateSalt()
+            user.passwordHash = shiroCrmSecurityService.hashPassword(new String(authToken.password), salt)
             user.passwordSalt = salt.encodeBase64().toString()
         }
 

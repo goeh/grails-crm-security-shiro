@@ -23,19 +23,14 @@ import grails.plugins.crm.core.CrmException
 
 class ShiroCrmSecurityServiceSpec extends grails.plugin.spock.IntegrationSpec {
 
-    def crmSecurityService
     def shiroCrmSecurityService
     def grailsApplication
 
     def accountType
 
-    def "shiro security delegate is injected"() {
-        expect: crmSecurityService.crmSecurityDelegate.class == ShiroCrmSecurityDelegate.class
-    }
-
     def "create user"() {
         when:
-        def user = crmSecurityService.createUser([username: "test", name: "Test User", email: "test@test.com", password: "test123", enabled: true])
+        def user = shiroCrmSecurityService.createUser([username: "test", name: "Test User", email: "test@test.com", password: "test123", enabled: true])
         then:
         user != null
         user instanceof Map
@@ -43,20 +38,20 @@ class ShiroCrmSecurityServiceSpec extends grails.plugin.spock.IntegrationSpec {
 
     def "duplicate username is not allowed"() {
         when:
-        def user = crmSecurityService.createUser([username: "test", name: "Test User", email: "test@test.com", password: "test123", enabled: true])
+        def user = shiroCrmSecurityService.createUser([username: "test", name: "Test User", email: "test@test.com", password: "test123", enabled: true])
         then:
         user != null
 
         when:
-        user = crmSecurityService.createUser([username: "test", name: "Test User Duplicate", email: "info@technipelago.se", password: "test789", enabled: true])
+        user = shiroCrmSecurityService.createUser([username: "test", name: "Test User Duplicate", email: "info@technipelago.se", password: "test789", enabled: true])
         then:
         thrown(CrmException)
     }
 
     def "get user information"() {
         when:
-        crmSecurityService.createUser([username: "test", name: "Test User", email: "test@test.com", password: "test123", enabled: true])
-        def info = crmSecurityService.getUserInfo("test")
+        shiroCrmSecurityService.createUser([username: "test", name: "Test User", email: "test@test.com", password: "test123", enabled: true])
+        def info = shiroCrmSecurityService.getUserInfo("test")
 
         then:
         info instanceof Map
@@ -68,7 +63,7 @@ class ShiroCrmSecurityServiceSpec extends grails.plugin.spock.IntegrationSpec {
 
     def "get user instance"() {
         when:
-        crmSecurityService.createUser([username: "test", name: "Test User", email: "test@test.com", password: "test123", enabled: true])
+        shiroCrmSecurityService.createUser([username: "test", name: "Test User", email: "test@test.com", password: "test123", enabled: true])
         def user = shiroCrmSecurityService.getUser("test")
 
         then:
@@ -83,20 +78,20 @@ class ShiroCrmSecurityServiceSpec extends grails.plugin.spock.IntegrationSpec {
         def result
 
         given:
-        crmSecurityService.createUser([username: "test", name: "Test User", email: "test@test.com", password: "test123", enabled: true])
+        shiroCrmSecurityService.createUser([username: "test", name: "Test User", email: "test@test.com", password: "test123", enabled: true])
 
         when:
-        crmSecurityService.runAs("test") {
-            result = crmSecurityService.getTenants()
+        shiroCrmSecurityService.runAs("test") {
+            result = shiroCrmSecurityService.getTenants()
         }
         then:
         result.isEmpty()
 
         when:
-        crmSecurityService.runAs("test") {
-            crmSecurityService.createTenant("My First Tenant", "simple")
-            crmSecurityService.createTenant("My Second Tenant", "test")
-            result = crmSecurityService.getTenants()
+        shiroCrmSecurityService.runAs("test") {
+            shiroCrmSecurityService.createTenant("My First Tenant", "simple")
+            shiroCrmSecurityService.createTenant("My Second Tenant", "test")
+            result = shiroCrmSecurityService.getTenants()
         }
         then:
         result.size() == 2
@@ -107,11 +102,11 @@ class ShiroCrmSecurityServiceSpec extends grails.plugin.spock.IntegrationSpec {
         def result
 
         given:
-        crmSecurityService.createUser([username: "test", name: "Test User", email: "test@test.com", password: "test123", enabled: true])
+        shiroCrmSecurityService.createUser([username: "test", name: "Test User", email: "test@test.com", password: "test123", enabled: true])
 
         when:
-        crmSecurityService.runAs("test") {
-            result = crmSecurityService.getCurrentUser()
+        shiroCrmSecurityService.runAs("test") {
+            result = shiroCrmSecurityService.getCurrentUser()
         }
         then:
         result != null
@@ -122,11 +117,11 @@ class ShiroCrmSecurityServiceSpec extends grails.plugin.spock.IntegrationSpec {
         def result
 
         given:
-        crmSecurityService.createUser([username: "test", name: "Test User", email: "test@test.com", password: "test123", enabled: true])
+        shiroCrmSecurityService.createUser([username: "test", name: "Test User", email: "test@test.com", password: "test123", enabled: true])
 
         when:
-        crmSecurityService.runAs("test") {
-            result = crmSecurityService.isAuthenticated()
+        shiroCrmSecurityService.runAs("test") {
+            result = shiroCrmSecurityService.isAuthenticated()
         }
         then:
         result == false
@@ -136,12 +131,12 @@ class ShiroCrmSecurityServiceSpec extends grails.plugin.spock.IntegrationSpec {
         def result
 
         given:
-        crmSecurityService.createUser([username: "test", name: "Test User", email: "test@test.com", password: "test123", enabled: true])
+        shiroCrmSecurityService.createUser([username: "test", name: "Test User", email: "test@test.com", password: "test123", enabled: true])
 
         when:
-        crmSecurityService.runAs("test") {
+        shiroCrmSecurityService.runAs("test") {
             SecurityUtils.subject.login(new UsernamePasswordToken("test", "test123"))
-            result = crmSecurityService.isAuthenticated()
+            result = shiroCrmSecurityService.isAuthenticated()
             SecurityUtils.subject.logout()
         }
         then:
@@ -152,8 +147,8 @@ class ShiroCrmSecurityServiceSpec extends grails.plugin.spock.IntegrationSpec {
         def result
         // No user created here.
         when:
-        crmSecurityService.runAs("test") {
-            result = crmSecurityService.getCurrentUser()
+        shiroCrmSecurityService.runAs("test") {
+            result = shiroCrmSecurityService.getCurrentUser()
         }
         then:
         thrown(org.apache.shiro.authz.UnauthorizedException)
@@ -163,11 +158,11 @@ class ShiroCrmSecurityServiceSpec extends grails.plugin.spock.IntegrationSpec {
         def result
 
         given:
-        crmSecurityService.createUser([username: "test", name: "Test User", email: "test@test.com", password: "test123", enabled: false])
+        shiroCrmSecurityService.createUser([username: "test", name: "Test User", email: "test@test.com", password: "test123", enabled: false])
 
         when:
-        crmSecurityService.runAs("test") {
-            result = crmSecurityService.getCurrentUser()
+        shiroCrmSecurityService.runAs("test") {
+            result = shiroCrmSecurityService.getCurrentUser()
         }
         then:
         thrown(org.apache.shiro.authz.UnauthorizedException)
@@ -179,19 +174,19 @@ class ShiroCrmSecurityServiceSpec extends grails.plugin.spock.IntegrationSpec {
         def result
 
         given:
-        crmSecurityService.createUser([username: "test", name: "Test User", email: "test@test.com", password: "test123", enabled: true])
+        shiroCrmSecurityService.createUser([username: "test", name: "Test User", email: "test@test.com", password: "test123", enabled: true])
         shiroCrmSecurityService.addNamedPermission("test", "test:*")
 
         when:
-        crmSecurityService.runAs("test") {
-            tenant = crmSecurityService.createTenant("Test Tenant", "test")
+        shiroCrmSecurityService.runAs("test") {
+            tenant = shiroCrmSecurityService.createTenant("Test Tenant", "test")
         }
         then:
         tenant != null
 
         when:
         TenantUtils.withTenant(tenant.id) {
-            crmSecurityService.runAs("test") {
+            shiroCrmSecurityService.runAs("test") {
                 SecurityUtils.subject.checkPermission("test:protected")
             }
         }
@@ -200,8 +195,8 @@ class ShiroCrmSecurityServiceSpec extends grails.plugin.spock.IntegrationSpec {
 
         when:
         TenantUtils.withTenant(tenant.id) {
-            crmSecurityService.runAs("test") {
-                result = crmSecurityService.isPermitted("test:protected")
+            shiroCrmSecurityService.runAs("test") {
+                result = shiroCrmSecurityService.isPermitted("test:protected")
             }
         }
         then:
@@ -211,8 +206,8 @@ class ShiroCrmSecurityServiceSpec extends grails.plugin.spock.IntegrationSpec {
         when:
         TenantUtils.withTenant(tenant.id) {
             shiroCrmSecurityService.addUserPermission("test", "test")
-            crmSecurityService.runAs("test") {
-                result = crmSecurityService.isPermitted("test:protected")
+            shiroCrmSecurityService.runAs("test") {
+                result = shiroCrmSecurityService.isPermitted("test:protected")
                 SecurityUtils.subject.checkPermission("test:protected")
             }
         }
@@ -227,12 +222,12 @@ class ShiroCrmSecurityServiceSpec extends grails.plugin.spock.IntegrationSpec {
         def result
 
         given:
-        crmSecurityService.createUser([username: "test", name: "Test User", email: "test@test.com", password: "test123", enabled: true])
+        shiroCrmSecurityService.createUser([username: "test", name: "Test User", email: "test@test.com", password: "test123", enabled: true])
         shiroCrmSecurityService.addNamedPermission("test", "test:*")
 
         when:
-        crmSecurityService.runAs("test") {
-            tenant = crmSecurityService.createTenant("Test Tenant", "test")
+        shiroCrmSecurityService.runAs("test") {
+            tenant = shiroCrmSecurityService.createTenant("Test Tenant", "test")
             TenantUtils.withTenant(tenant.id) {
                 shiroCrmSecurityService.addUserPermission("test", "test")
             }
@@ -241,18 +236,18 @@ class ShiroCrmSecurityServiceSpec extends grails.plugin.spock.IntegrationSpec {
         tenant != null
 
         when:
-        crmSecurityService.runAs("test") {
+        shiroCrmSecurityService.runAs("test") {
             TenantUtils.withTenant(tenant.id) {
-                result = crmSecurityService.isPermitted("test:protected")
+                result = shiroCrmSecurityService.isPermitted("test:protected")
             }
         }
         then:
         result == true
 
         when:
-        crmSecurityService.runAs("test") {
+        shiroCrmSecurityService.runAs("test") {
             TenantUtils.withTenant(42L) {
-                result = crmSecurityService.isPermitted("test:protected")
+                result = shiroCrmSecurityService.isPermitted("test:protected")
             }
         }
         then:

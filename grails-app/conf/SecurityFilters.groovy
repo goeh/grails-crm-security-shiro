@@ -4,7 +4,6 @@ import grails.plugins.crm.core.TenantUtils
 class SecurityFilters {
 
     def grailsApplication
-    def controllerGroupMapper
 
     def dependsOn = [CrmTenantFilters]
 
@@ -53,8 +52,7 @@ class SecurityFilters {
                 accessControl {
                     // Check that the user has the required permission for the target controller/action.
                     def permString = new StringBuilder()
-                    def controllerAlias = controllerName//controllerGroupMapper(controllerName)
-                    permString << /*TenantUtils.tenant.toString() << ':' << */controllerAlias << ':' << (actionName ?: "index")
+                    permString << controllerName << ':' << (actionName ?: "index")
 
                     // Add the ID if it's in the web parameters.
                     if (params.id) permString << ':' << params.id

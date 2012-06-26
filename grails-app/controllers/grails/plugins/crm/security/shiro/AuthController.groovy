@@ -28,7 +28,6 @@ class AuthController {
 
     def shiroSecurityManager
     def shiroCrmSecurityService
-    def crmSecurityService
     def crmPluginService
     def userSettingsService
 
@@ -115,7 +114,7 @@ class AuthController {
     }
 
     def logout = {
-        def username = crmSecurityService.currentUser?.username
+        def username = shiroCrmSecurityService.currentUser?.username
 
         // Log the user out of the application.
         SecurityUtils.subject?.logout()
