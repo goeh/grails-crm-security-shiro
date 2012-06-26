@@ -25,7 +25,6 @@ import org.apache.shiro.authz.UnauthorizedException
 import org.apache.shiro.mgt.DefaultSecurityManager
 import org.apache.shiro.subject.SimplePrincipalCollection
 import org.apache.shiro.subject.Subject
-import grails.plugins.crm.core.SecurityServiceDelegate
 import org.apache.shiro.crypto.hash.Sha512Hash
 import org.apache.shiro.crypto.SecureRandomNumberGenerator
 import grails.plugins.crm.core.UserCreatedEvent
@@ -33,8 +32,10 @@ import grails.plugins.crm.core.UserUpdatedEvent
 import grails.plugins.crm.core.UserDeletedEvent
 import grails.plugins.crm.core.TenantCreatedEvent
 import grails.plugins.crm.core.TenantDeletedEvent
+import grails.plugins.crm.core.DateUtils
+import grails.plugins.crm.core.CrmSecurityService
 
-class ShiroCrmSecurityService implements SecurityServiceDelegate {
+class ShiroCrmSecurityService implements CrmSecurityService {
 
     static transactional = true
 
@@ -219,6 +220,44 @@ class ShiroCrmSecurityService implements SecurityServiceDelegate {
         def tenantInfo = tenant.dao
         publishEvent(new TenantCreatedEvent(tenantInfo))
         return tenantInfo
+    }
+
+    /**
+     * Update tenant properties.
+     *
+     * @param tenantId id of tenant to update
+     * @param properties key/value pairs to update
+     * @return tenant information after update
+     */
+    Map<String, Object> updateTenant(Long tenantId, Map<String, Object> properties) {
+        def shiroCrmTenant = ShiroCrmTenant.get(tenantId)
+        if (!shiroCrmTenant) {
+            throw new CrmException('tenant.not.found.message', ['Account', tenantId])
+        }
+        if(properties.name) {
+            shiroCrmTenant.name = properties.name
+        }
+        if(properties.type) {
+            shiroCrmTenant.type = properties.type
+        }
+        def expires = properties.expires
+        if(expires) {
+            if(!(expires instanceof Date)) {
+                expires = DateUtils.parseSqlDate(expires.toString())
+            }
+            shiroCrmTenant.expires = expires
+        }
+        def parent = properties.parent
+        if(parent) {
+            if(parent instanceof Number) {
+                parent = ShiroCrmTenant.load(parent)
+            }
+            shiroCrmTenant.parent = parent
+        }
+        properties.options.each{key, value->
+            shiroCrmTenant.setOption(key, value)
+        }
+        shiroCrmTenant.save(flush:true)?.dao
     }
 
     /**

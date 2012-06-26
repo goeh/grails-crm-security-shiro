@@ -95,7 +95,47 @@ class ShiroCrmSecurityServiceSpec extends grails.plugin.spock.IntegrationSpec {
         }
         then:
         result.size() == 2
+    }
 
+    def "update tenant"() {
+        def tenant
+
+        given:
+        shiroCrmSecurityService.createUser([username: "test", name: "Test User", email: "test@test.com", password: "test123", enabled: true])
+
+        when:
+        shiroCrmSecurityService.runAs("test") {
+            tenant = shiroCrmSecurityService.createTenant("My Tenant", "foo")
+        }
+        then:
+        tenant.type == "foo"
+
+        when:
+        shiroCrmSecurityService.updateTenant(tenant.id, [type:"bar"])
+
+        then:
+        shiroCrmSecurityService.getTenantInfo(tenant.id)?.type == "bar"
+    }
+
+    def "set tenant options"() {
+        def tenant
+
+        given:
+        shiroCrmSecurityService.createUser([username: "test", name: "Test User", email: "test@test.com", password: "test123", enabled: true])
+
+        when:
+        shiroCrmSecurityService.runAs("test") {
+            tenant = shiroCrmSecurityService.createTenant("My Tenant", "foo")
+        }
+        then:
+        tenant.options.foo == null
+
+        when:
+        tenant = shiroCrmSecurityService.updateTenant(tenant.id, [options: [foo:42]])
+
+        then:
+        tenant.options.foo == 42
+        shiroCrmSecurityService.getTenantInfo(tenant.id).options.foo == 42
     }
 
     def "runAs changes current user"() {
