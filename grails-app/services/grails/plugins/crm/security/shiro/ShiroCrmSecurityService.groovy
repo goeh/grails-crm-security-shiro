@@ -113,6 +113,12 @@ class ShiroCrmSecurityService implements CrmSecurityService {
      * @return user information after update
      */
     Map<String, Object> updateUser(String username, Map<String, Object> props) {
+        if (!username) {
+            username = SecurityUtils.subject?.principal?.toString()
+            if (!username) {
+                throw new UnauthorizedException("not authenticated")
+            }
+        }
         def user = ShiroCrmUser.findByUsername(username)
         if (!user) {
             throw new CrmException("user.not.found.message", [username])
