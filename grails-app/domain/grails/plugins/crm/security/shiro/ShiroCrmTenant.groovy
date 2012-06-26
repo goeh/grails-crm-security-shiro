@@ -84,12 +84,16 @@ class ShiroCrmTenant {
     }
 
     void setOption(String key, Object value) {
-        def o = options.find{it.key == key}
-        if(o) {
-            o.value = value
+        if(value == null) {
+            removeOption(key)
         } else {
-            o = new ShiroCrmTenantOption(key, value)
-            addToOptions(o)
+            def o = options.find{it.key == key}
+            if(o) {
+                o.value = value
+            } else {
+                o = new ShiroCrmTenantOption(key, value)
+                addToOptions(o)
+            }
         }
     }
 
