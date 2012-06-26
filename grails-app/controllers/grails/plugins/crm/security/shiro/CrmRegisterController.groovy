@@ -79,7 +79,7 @@ class CrmRegisterController {
                                 }
                             }
                             def user = shiroCrmSecurityService.createUser(props)
-                            sendVerificationEmail(user.dao)
+                            sendVerificationEmail(user)
                             success = true
                         } catch (Exception e) {
                             log.error("Could not create user ${cmd.name} (${cmd.username}) <${cmd.email}>", e)
@@ -127,6 +127,9 @@ class CrmRegisterController {
             throw new RuntimeException("Template not found: [name=register-verify-email]")
         }
         sendMail {
+            if(bodyText && bodyHtml) {
+                multipart true
+            }
             from config.from
             to params.email
             if (config.cc) {
@@ -152,10 +155,10 @@ class CrmRegisterController {
     def confirm(String id) {
         def user = ShiroCrmUser.findByGuid(id)
         if (user) {
-            shiroCrmSecurityService.setUserStatus(user, true)
+            def userInfo = shiroCrmSecurityService.updateUser(user.username, [enabled:true])
             //SecurityUtils.subject.login(new UsernamePasswordToken(cmd.username, cmd.password))
             def targetUri = grailsApplication.config.crm.register.welcome.url ?: "/welcome"
-            return [user: user, targetUri: targetUri]
+            return [user: userInfo, targetUri: targetUri]
         } else {
             response.sendError(HttpServletResponse.SC_NOT_FOUND)
         }

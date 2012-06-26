@@ -280,24 +280,35 @@ class ShiroCrmSecurityService implements CrmSecurityService {
     }
 
     /**
-     * Return all tenants that a user owns.
+     * Get all tenants that a user has access to.
      *
-     * @param username username or null for current user
-     * @return list of tenants (DAO)
+     * @param username username
+     * @return collection of tenant information
      */
     List<Map<String, Object>> getTenants(String username = null) {
         if (!username) {
-            username = currentUser?.username
+            username = SecurityUtils.subject?.principal?.toString()
             if (!username) {
                 throw new UnauthorizedException("not authenticated")
             }
         }
-        ShiroCrmTenant.createCriteria().list() {
-            user {
-                eq('username', username)
+        def result = []
+        try {
+            def tenants = getAllTenants(username)
+            if(tenants) {
+                def currentTenant = TenantUtils.tenant
+                result = ShiroCrmTenant.createCriteria().list() {
+                    inList('id', tenants)
+                }.collect {
+                    def info = it.dao
+                    def extra = [current: it.id == currentTenant, my: info.user.username == username]
+                    return info + extra
+                }
             }
-            cache true
-        }*.dao
+        } catch (Exception e) {
+            log.error("Failed to get tenants for user [$username]", e)
+        }
+        return result
     }
 
     /**
@@ -442,27 +453,7 @@ class ShiroCrmSecurityService implements CrmSecurityService {
         username ? ShiroCrmUser.findByUsername(username, [cache: true]) : null
     }
 
-    /**
-     * Set tenant name.
-     * TODO Why a separate method for just updating the name??? updateTenant(Long, Map) is better
-     * @param id tenant ID
-     * @param name tenant name
-     * @return tenant properties (DAO)
-     */
-    Map<String, Object> setTenantName(Long id, String name) {
-        def tenant = ShiroCrmTenant.lock(id)
-        if (!tenant) {
-            throw new CrmException('tenant.not.found.message', ['Account', id])
-        }
-
-        tenant.name = name
-
-        tenant.save(failOnError: true)
-
-        tenant.dao
-    }
-
-    Collection<Long> getAllTenants(String username = null) {
+    private Set<Long> getAllTenants(String username = null) {
         if (!username) {
             username = SecurityUtils.subject?.principal?.toString()
             if (!username) {
@@ -488,48 +479,16 @@ class ShiroCrmSecurityService implements CrmSecurityService {
                 result.addAll(tmp)
             }
         }
-        return result.asList()
-    }
-
-    Collection<Map> getUserTenants(String username = null) {
-        if (!username) {
-            username = SecurityUtils.subject?.principal?.toString()
-            if (!username) {
-                throw new UnauthorizedException("not authenticated")
-            }
-        }
-        def result
-        try {
-            def tenants = getAllTenants(username)
-            def currentTenant = TenantUtils.tenant
-            result = tenants.sort {it}.collect {
-                def info = getTenantInfo(it)
-                def extra = [current: currentTenant == it, my: info.user.username == username]
-                return info + extra
-            }
-        } catch (Exception e) {
-            log.error("Failed to get tenants for user [$username]", e)
-            result = []
-        }
         return result
     }
 
     /**
-     * Return the default tenant (ID) for a user.
-     * @param username
-     * @return tenant id
-     */
-    Long getDefaultTenant(String username = null) {
-        getUser(username)?.defaultTenant
-    }
-
-    /**
      * Set the default tenant (ID) for a user.
-     * @param username
-     * @param tenant
-     * @return
+     * @param username username or null for current user
+     * @param tenant tenant id or null for current tenant
+     * @return user information after updating user
      */
-    def setDefaultTenant(String username = null, Long tenant = null) {
+    Map<String, Object> setDefaultTenant(String username = null, Long tenant = null) {
         def user
         if (username) {
             user = getUser(username)
@@ -551,6 +510,8 @@ class ShiroCrmSecurityService implements CrmSecurityService {
         user = ShiroCrmUser.lock(user.id)
         user.defaultTenant = tenant
         user.save(flush: true)
+
+        return user.dao
     }
 
     /**
@@ -637,15 +598,6 @@ class ShiroCrmSecurityService implements CrmSecurityService {
             user.save(flush: true)
         }
         return perm
-    }
-
-    void setUserStatus(ShiroCrmUser user, boolean enabled) {
-        if (user.enabled != enabled) {
-            user.enabled = enabled
-            user.save(failOnError: true, flush: true)
-
-            publishEvent(new UserUpdatedEvent(user.dao))
-        }
     }
 
     /**
