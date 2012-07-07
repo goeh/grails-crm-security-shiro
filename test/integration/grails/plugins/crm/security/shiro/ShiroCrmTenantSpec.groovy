@@ -9,7 +9,7 @@ class ShiroCrmTenantSpec extends grails.plugin.spock.IntegrationSpec {
 
     def "set and get option"() {
         given:
-        def userDAO = crmSecurityService.createUser(username: "test", name: "Integration Test", email: "test@test.com", password: "secret")
+        def userDAO = crmSecurityService.createUser(username: "inttest", name: "Integration Test", email: "test@test.com", password: "secret")
         def user = ShiroCrmUser.load(userDAO.id)
         def t = new ShiroCrmTenant(name: "test", type: "integration", user: user).save(failOnError: true, flush: true)
 

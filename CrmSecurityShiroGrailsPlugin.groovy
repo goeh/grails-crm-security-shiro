@@ -19,7 +19,7 @@ class CrmSecurityShiroGrailsPlugin {
     // Dependency group
     def groupId = "grails.crm"
     // the plugin version
-    def version = "0.9.7.3"
+    def version = "0.9.8.4"
     // the version or versions of Grails the plugin is designed for
     def grailsVersion = "2.0 > *"
     // the other plugins this plugin depends on
@@ -28,7 +28,8 @@ class CrmSecurityShiroGrailsPlugin {
     def loadAfter = ['crmCore', 'shiro']
     // resources that are excluded from plugin packaging
     def pluginExcludes = [
-            "grails-app/views/error.gsp"
+            "grails-app/views/error.gsp",
+            "grails-app/conf/ApplicationResources.groovy"
     ]
 
     def title = "Shiro Security for Grails CRM" // Headline display name of the plugin

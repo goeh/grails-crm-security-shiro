@@ -118,8 +118,6 @@ class ShiroCrmUser {
             def p = role.role.permissions
             if (p) {
                 allPerm.addAll(p)
-            } else {
-                println "Role $username/$role has no permissions"
             }
         }
         def map = properties.subMap(['id', 'guid', 'username', 'name', 'email', 'company', 'address1', 'address2', 'address3', 'postalCode', 'city', 'region', 'countryCode', 'currency', 'telephone', 'mobile', 'enabled', 'campaign', 'defaultTenant'])

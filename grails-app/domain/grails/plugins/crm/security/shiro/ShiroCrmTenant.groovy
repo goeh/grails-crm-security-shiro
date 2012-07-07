@@ -67,7 +67,7 @@ class ShiroCrmTenant {
      */
     Map<String, Object> getDao() {
         [id: id, name: name, type: type, parent: parent?.id,
-                user: [username: user.username, name: user.name, email: user.email],
+                user: [id:user.id, username: user.username, name: user.name, email: user.email],
                 options: getOptionsMap(), dateCreated: dateCreated, expires:expires]
     }
 

@@ -240,30 +240,30 @@ class ShiroCrmSecurityService implements CrmSecurityService {
         if (!shiroCrmTenant) {
             throw new CrmException('tenant.not.found.message', ['Account', tenantId])
         }
-        if(properties.name) {
+        if (properties.name) {
             shiroCrmTenant.name = properties.name
         }
-        if(properties.type) {
+        if (properties.type) {
             shiroCrmTenant.type = properties.type
         }
         def expires = properties.expires
-        if(expires) {
-            if(!(expires instanceof Date)) {
+        if (expires) {
+            if (!(expires instanceof Date)) {
                 expires = DateUtils.parseSqlDate(expires.toString())
             }
             shiroCrmTenant.expires = expires
         }
         def parent = properties.parent
-        if(parent) {
-            if(parent instanceof Number) {
+        if (parent) {
+            if (parent instanceof Number) {
                 parent = ShiroCrmTenant.load(parent)
             }
             shiroCrmTenant.parent = parent
         }
-        properties.options.each{key, value->
+        properties.options.each {key, value ->
             shiroCrmTenant.setOption(key, value)
         }
-        shiroCrmTenant.save(flush:true)?.dao
+        shiroCrmTenant.save(flush: true)?.dao
     }
 
     /**
@@ -301,7 +301,7 @@ class ShiroCrmSecurityService implements CrmSecurityService {
         def result = []
         try {
             def tenants = getAllTenants(username)
-            if(tenants) {
+            if (tenants) {
                 def currentTenant = TenantUtils.tenant
                 result = ShiroCrmTenant.createCriteria().list() {
                     inList('id', tenants)
@@ -638,6 +638,23 @@ class ShiroCrmSecurityService implements CrmSecurityService {
         }
 
         return result
+    }
+
+    ShiroCrmRole updatePermissionsForRole(Long tenant = null, String rolename, List<String> permissions) {
+        if (tenant == null) {
+            tenant = TenantUtils.getTenant()
+        }
+        def role = ShiroCrmRole.findByNameAndTenantId(rolename, tenant, [cache: true])
+        if (role) {
+            role.permissions.clear()
+        } else {
+            role = new ShiroCrmRole(name: rolename, tenantId: tenant)
+            log.warn("Created missing role [$rolename] for tenant [$tenant]")
+        }
+        for (perm in permissions) {
+            role.addToPermissions(perm)
+        }
+        role.save(failOnError: true, flush: true)
     }
 
 }

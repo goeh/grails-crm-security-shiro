@@ -105,9 +105,9 @@ class ShiroDbRealm {
         def user = shiroCrmSecurityService.getUser(username)
         def tenant = user?.defaultTenant
         if (tenant == null) {
-            def availableTenants = shiroCrmSecurityService.getAllTenants(username)
+            def availableTenants = shiroCrmSecurityService.getTenants(username)
             if (!availableTenants.isEmpty()) {
-                tenant = availableTenants.get(0)
+                tenant = availableTenants.get(0).id
             }
         }
         if (tenant != null) {

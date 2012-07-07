@@ -16,7 +16,7 @@
     <crm:header title="auth.login.title" default="Please sign in"/>
 </div>
 
-<g:form action="signIn" name="loginForm" class="hidden-desktop">
+<g:form action="signIn" name="loginForm" class="hidden-desktop visible-phone">
 
     <crm:header title="auth.login.title" default="Please sign in"/>
 

@@ -55,10 +55,15 @@ grails.project.dependency.resolution = {
 
         compile "grails.crm:crm-core:latest.integration"
 
-        compile ":cache:1.0.0.BUILD-SNAPSHOT"
+        compile ":cache:1.0.0"
         //compile ":cache-ehcache:1.0.0.M2"
 
         runtime "grails.crm:crm-feature:latest.integration"
+
+        runtime "grails.crm:crm-ui-bootstrap:latest.integration"
+
+        runtime ":selection:latest.integration"
+        runtime ":selection-repository:latest.integration"
     }
 }
 
