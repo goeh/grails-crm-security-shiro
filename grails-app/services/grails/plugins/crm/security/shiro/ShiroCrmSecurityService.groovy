@@ -17,8 +17,10 @@
 package grails.plugins.crm.security.shiro
 
 import org.apache.shiro.SecurityUtils
-import grails.plugins.crm.core.TenantUtils
 import grails.plugins.crm.core.CrmException
+import grails.plugins.crm.core.TenantUtils
+import grails.plugins.crm.core.DateUtils
+import grails.plugins.crm.core.CrmSecurityService
 import grails.plugin.cache.CacheEvict
 import grails.plugin.cache.Cacheable
 import org.apache.shiro.authz.UnauthorizedException
@@ -27,13 +29,6 @@ import org.apache.shiro.subject.SimplePrincipalCollection
 import org.apache.shiro.subject.Subject
 import org.apache.shiro.crypto.hash.Sha512Hash
 import org.apache.shiro.crypto.SecureRandomNumberGenerator
-import grails.plugins.crm.core.UserCreatedEvent
-import grails.plugins.crm.core.UserUpdatedEvent
-import grails.plugins.crm.core.UserDeletedEvent
-import grails.plugins.crm.core.TenantCreatedEvent
-import grails.plugins.crm.core.TenantDeletedEvent
-import grails.plugins.crm.core.DateUtils
-import grails.plugins.crm.core.CrmSecurityService
 
 class ShiroCrmSecurityService implements CrmSecurityService {
 
@@ -101,7 +96,7 @@ class ShiroCrmSecurityService implements CrmSecurityService {
 
         user.save(failOnError: true, flush: true)
         def userInfo = user.dao
-        publishEvent(new UserCreatedEvent(userInfo))
+        event(for: "crm", topic: "userCreated", data: userInfo)
         return userInfo
     }
 
@@ -139,7 +134,7 @@ class ShiroCrmSecurityService implements CrmSecurityService {
         user.save(failOnError: true, flush: true)
         def userInfo = user.dao
         // Use Spring Events plugin to broadcast that a user was updated.
-        publishEvent(new UserUpdatedEvent(userInfo))
+        event(for: "crm", topic: "userUpdated", data: userInfo)
 
         return userInfo
     }
@@ -176,7 +171,7 @@ class ShiroCrmSecurityService implements CrmSecurityService {
         }
         def userInfo = user.dao
         user.delete(flush: true)
-        publishEvent(new UserDeletedEvent(userInfo))
+        event(for: "crm", topic: "userDeleted", data: userInfo)
         return true
     }
 
@@ -224,7 +219,7 @@ class ShiroCrmSecurityService implements CrmSecurityService {
         user.save(flush: true)
 
         def tenantInfo = tenant.dao
-        publishEvent(new TenantCreatedEvent(tenantInfo))
+        event(for: "crm", topic: "tenantCreated", data: tenantInfo)
         return tenantInfo
     }
 
@@ -430,7 +425,7 @@ class ShiroCrmSecurityService implements CrmSecurityService {
 
         // Use Spring Events plugin to broadcast that the tenant was deleted.
         // Receivers should remove any data associated with the tenant.
-        publishEvent(new TenantDeletedEvent(tenantInfo))
+        event(for: "crm", topic: "tenantDeleted", data: tenantInfo)
 
         return true
     }

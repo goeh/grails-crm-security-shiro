@@ -17,12 +17,12 @@
 <div class="row-fluid">
 
     <div class="span5">
-        <tt:html name="register.confirm.left"/>
+        <tt:html name="register-confirm-left"/>
     </div>
 
     <div class="span7">
 
-        <tt:html name="register.confirm.main">
+        <tt:html name="register-confirm-main">
             <p>
                 Your registration is now confirmed and you can start using our services.
             </p>

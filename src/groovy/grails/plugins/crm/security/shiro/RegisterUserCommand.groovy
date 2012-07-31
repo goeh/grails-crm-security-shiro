@@ -28,6 +28,7 @@ class RegisterUserCommand implements Serializable {
     String name
     String email
     String password
+    String telephone
     String postalCode
     String country
     String campaign
@@ -43,7 +44,8 @@ class RegisterUserCommand implements Serializable {
         email(maxSize: 80, nullable: false, blank: false, email: true)
         password(maxSize: 80, nullable: false, blank: false)
         postalCode(size: 2..20, maxSize: 20, blank: false)
+        telephone(maxSize:20, nullable:true)
         campaign(maxSize:80, nullable:true)
-        captcha(maxSize:10)
+        captcha(maxSize:10, blank:false)
     }
 }

@@ -153,9 +153,7 @@ class ShiroCrmUserController {
             return
         }
 
-        publishEvent(new ResetPermissionsEvent([tenant:tenantId, username:shiroCrmUser.username]))
-
-        Thread.currentThread().sleep(3000)
+        event(for:"crm", topic:"resetPermissions", data: [tenant:tenantId, username:shiroCrmUser.username])
 
         flash.warning = message(code: 'shiroCrmUser.permission.reset.message', default:"Permissions reset for user [{0}]", args:[shiroCrmUser.toString()])
 

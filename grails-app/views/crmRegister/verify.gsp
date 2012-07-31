@@ -13,7 +13,7 @@
     </div>
 </g:content>
 
-<tt:html name="register.verify.main">
+<tt:html name="register-verify-main">
 
     <div class="row-fluid">
 

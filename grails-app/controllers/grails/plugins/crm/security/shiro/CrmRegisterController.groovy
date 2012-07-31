@@ -18,6 +18,7 @@ package grails.plugins.crm.security.shiro
 
 import org.codehaus.groovy.grails.web.mapping.LinkGenerator
 import javax.servlet.http.HttpServletResponse
+import grails.plugins.crm.core.TenantUtils
 
 /**
  * User Registration.
@@ -79,7 +80,9 @@ class CrmRegisterController {
                                 }
                             }
                             def user = shiroCrmSecurityService.createUser(props)
-                            sendVerificationEmail(user)
+                            TenantUtils.withTenant(1) {
+                                sendVerificationEmail(user)
+                            }
                             success = true
                         } catch (Exception e) {
                             log.error("Could not create user ${cmd.name} (${cmd.username}) <${cmd.email}>", e)

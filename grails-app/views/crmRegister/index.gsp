@@ -16,7 +16,7 @@
 <div class="row-fluid">
 
     <div class="span4">
-        <tt:html name="register.index.left"/>
+        <tt:html name="register-index-left"/>
     </div>
 
     <div class="span4">
@@ -51,6 +51,10 @@
                     <g:passwordField name="password" value="${cmd.password}"
                                      placeholder="${message(code:'register.password.placeholder')}"/>
                 </f:field>
+                <f:field property="telephone" label="register.telephone.label">
+                    <g:textField name="telephone" value="${cmd.telephone}"
+                                 placeholder="${message(code:'register.telephone.placeholder')}"/>
+                </f:field>
                 <f:field property="postalCode" label="register.postalCode.label">
                     <g:textField name="postalCode" value="${cmd.postalCode}"
                                  placeholder="${message(code:'register.postalCode.placeholder')}"/>
@@ -83,7 +87,7 @@
     </div>
 
     <div class="span4">
-        <tt:html name="register.index.right"/>
+        <tt:html name="register-index-right"/>
     </div>
 
 </div>

@@ -40,10 +40,8 @@ grails.project.dependency.resolution = {
         }
         compile ':shiro:1.1.4'
 
-        test(":spock:latest.integration")
+        test(":spock:0.6")
         test ':codenarc:latest.integration'
-
-        compile ":spring-events:1.2.1"
 
         runtime ":jquery:1.7.1"
         runtime(":twitter-bootstrap:2.0.2.24") {
@@ -53,10 +51,12 @@ grails.project.dependency.resolution = {
 
         runtime ":mail:1.0"
 
+        compile ":platform-core:1.0.M2-SNAPSHOT"
         compile "grails.crm:crm-core:latest.integration"
-
         compile ":cache:1.0.0"
         //compile ":cache-ehcache:1.0.0.M2"
+
+        runtime ":text-template:latest.integration"
 
         runtime "grails.crm:crm-feature:latest.integration"
 

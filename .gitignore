@@ -11,4 +11,5 @@ target
 # Ignore stacktrace.log
 stacktrace.log
 
-#	plugin.xml
+#
+plugin.xml

@@ -28,7 +28,6 @@ class AuthController {
 
     def shiroSecurityManager
     def shiroCrmSecurityService
-    def crmPluginService
     def userSettingsService
 
     def index = { redirect(action: "login", params: params) }
@@ -71,11 +70,8 @@ class AuthController {
             eventParams.remove('password')
             eventParams.targetUri = targetUri
 
-            crmPluginService.synchronousEvent('onLogin', eventParams)
-
-            // Use Spring Events plugin to broadcast that a user logged in.
-            publishEvent(new UserLoggedInEvent(eventParams))
-
+            def rval = event(for: "crm", topic: "login", data: eventParams)
+            println "rval from login event: $rval"
             // An onLogin event handler may have changed targetUri so we must fetch it again.
             targetUri = eventParams.targetUri
 
@@ -121,7 +117,7 @@ class AuthController {
 
         if (username) {
             // Use Spring Events plugin to broadcast that a user logged out.
-            publishEvent(new UserLoggedOutEvent(username))
+            event(for: "crm", topic: "logout", data: username)
         }
 
         // Redirect back to the home page.
