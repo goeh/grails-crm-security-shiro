@@ -96,8 +96,11 @@ class ShiroDbRealm {
             user.passwordSalt = salt.encodeBase64().toString()
         }
 
-        setDefaultTenant(username)
-
+        try {
+            setDefaultTenant(username)
+        } catch(Exception e) {
+            log.error("Failed to set default tenant for user [$username]", e)
+        }
         return account
     }
 

@@ -70,8 +70,8 @@ class AuthController {
             eventParams.remove('password')
             eventParams.targetUri = targetUri
 
-            def rval = event(for: "crm", topic: "login", data: eventParams)
-            println "rval from login event: $rval"
+            def future = event(for: "crm", topic: "login", data: eventParams).waitFor()
+            println "rval from login event: ${future.value}"
             // An onLogin event handler may have changed targetUri so we must fetch it again.
             targetUri = eventParams.targetUri
 

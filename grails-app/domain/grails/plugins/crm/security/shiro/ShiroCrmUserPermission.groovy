@@ -34,6 +34,7 @@ class ShiroCrmUserPermission {
     static belongsTo = [user:ShiroCrmUser]
 
     static mapping = {
+        table 'crm_user_permission'
         cache 'nonstrict-read-write'
     }
 

@@ -11,14 +11,14 @@
 <crm:header title="shiroCrmUser.edit.title" subtitle="${shiroCrmUser.name}" args="[entityName, shiroCrmUser]"/>
 
 <g:hasErrors bean="${shiroCrmUser}">
-    <bootstrap:alert class="alert-error">
+    <crm:alert class="alert-error">
         <ul>
             <g:eachError bean="${shiroCrmUser}" var="error">
                 <li <g:if test="${error in org.springframework.validation.FieldError}">data-field-id="${error.field}"</g:if>><g:message
                         error="${error}"/></li>
             </g:eachError>
         </ul>
-    </bootstrap:alert>
+    </crm:alert>
 </g:hasErrors>
 
 <g:form action="edit">

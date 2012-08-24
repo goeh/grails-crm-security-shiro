@@ -1,4 +1,4 @@
-<!doctype html>
+<!DOCTYPE html>
 <html>
 <meta name="layout" content="main"/>
 <head><title>Unauthorized</title></head>

@@ -39,9 +39,10 @@ class ShiroCrmRole {
         description(maxSize:255, nullable:true)
     }
     static mapping = {
+        table 'crm_role'
         sort 'name'
         cache 'nonstrict-read-write'
-        permissions cascade: 'all-delete-orphan', cache: 'nonstrict-read-write'
+        permissions joinTable: [name: 'crm_role_permission', key: 'role_id'], cascade: 'all-delete-orphan', cache: 'nonstrict-read-write'
     }
 
     @Override

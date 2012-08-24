@@ -77,10 +77,11 @@ class ShiroCrmUser {
     }
 
     static mapping = {
+        table 'crm_user'
         sort 'username'
         cache 'read-write'
         accounts sort: 'name'
-        roles cascade: 'all-delete-orphan'
+        roles joinTable: [name: 'crm_user_role', key: 'user_id'], cascade: 'all-delete-orphan'
         permissions cascade: 'all-delete-orphan'
     }
 

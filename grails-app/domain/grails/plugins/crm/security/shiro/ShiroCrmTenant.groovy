@@ -30,18 +30,19 @@ class ShiroCrmTenant {
 
     // Long id of this account will be used as tenantId for all instances created by this tenant.
     java.sql.Date expires
+    String locale
     String name
-    String type
     ShiroCrmTenant parent
     static belongsTo = [user: ShiroCrmUser]
     static hasMany = [options: ShiroCrmTenantOption]
     static constraints = {
+        locale(maxSize:5, nullable:true, blank:false)
         expires(nullable:true)
-        name(size: 3..80, maxSize: 80, nullable: false, blank: false)
-        type(maxSize: 20, nullable: true)
+        name(size: 3..80, maxSize: 80, nullable: false, blank: false, unique:'user')
         parent(nullable:true)
     }
     static mapping = {
+        table 'crm_tenant'
         sort 'name'
         cache 'nonstrict-read-write'
     }
@@ -62,11 +63,11 @@ class ShiroCrmTenant {
 
     /**
      * Clients should use this method to get tenant properties instead of accessing the domain instance directly.
-     * The following properties are returned as a Map: [Long id, String name, String type, Map user [username, name, email]]
+     * The following properties are returned as a Map: [Long id, String name, Map user [username, name, email]]
      * @return a data access object (Map) representing the domain instance.
      */
     Map<String, Object> getDao() {
-        [id: id, name: name, type: type, parent: parent?.id,
+        [id: id, name: name, parent: parent?.id, locale: locale ? new Locale(*locale.split('_')) : Locale.getDefault(),
                 user: [id:user.id, username: user.username, name: user.name, email: user.email],
                 options: getOptionsMap(), dateCreated: dateCreated, expires:expires]
     }

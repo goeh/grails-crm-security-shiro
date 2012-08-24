@@ -16,6 +16,7 @@ class ShiroCrmTenantOption<T> {
     }
 
     static mapping = {
+        table 'crm_tenant_option'
         sort "key"
         key column: 'k' // key is reserved word in MySQL
         cache usage: "nonstrict-read-write"

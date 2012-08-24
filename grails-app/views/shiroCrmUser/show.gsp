@@ -117,8 +117,8 @@
                                     <dd>${tenant.id}</dd>
                                     <dt>Vynamn</dt>
                                     <dd>${tenant.name.encodeAsHTML()}</dd>
-                                    <dt>Typ</dt>
-                                    <dd>${tenant.type}</dd>
+                                    <dt>Funktioner</dt>
+                                    <dd>${tenant.features?.join(', ')}</dd>
                                     <g:if test="${tenant.user.id != shiroCrmUser.id}">
                                         <dt>Ägare</dt>
                                         <dd><g:link action="show"
@@ -146,6 +146,7 @@
                                             ${feature.description?.encodeAsHTML()}
                                             ${feature.enabled ? '' : '(disabled)'}
                                             <g:formatDate date="${feature.expires}"/>
+                                            <span style="background-color:yellow;">${feature.dump()}</span>
                                         </dd>
                                     </crm:eachFeature>
                                 </dl>

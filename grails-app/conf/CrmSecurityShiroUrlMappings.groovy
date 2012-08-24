@@ -12,32 +12,22 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * under the License.
  */
 
-package grails.plugins.crm.security.shiro
+class CrmSecurityShiroUrlMappings {
 
-/**
- * A named permission.
- */
-class ShiroCrmNamedPermission {
-
-    String name
-
-    static hasMany = [permissions: String]
-
-    static constraints = {
-        name(maxSize: 80, blank: false, unique: true)
-    }
-
-    static mapping = {
-        table 'crm_named_permission'
-        sort 'name'
-        cache 'nonstrict-read-write'
-        permissions joinTable: [name: 'crm_named_permission_string', key: 'name_id'], cache: 'nonstrict-read-write'
-    }
-
-    String toString() {
-        name.toString()
+	static mappings = {
+        name 'crm-account': "/account" {
+            controller = 'shiroCrmTenant'
+            action = 'index'
+        }
+        name 'crm-account-create': "/account/create" {
+            controller = 'shiroCrmTenant'
+            action = 'create'
+        }
+        name 'crm-account-activate': "/account/activate/$id" {
+            controller = 'shiroCrmTenant'
+            action = 'activate'
+        }
     }
 }

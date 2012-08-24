@@ -16,7 +16,7 @@
 
 package grails.plugins.crm.security.shiro
 
-import grails.plugins.crm.core.TenantUtils
+import grails.plugins.crm.core.SearchUtils
 
 /**
  * User administration service.
@@ -24,19 +24,6 @@ import grails.plugins.crm.core.TenantUtils
 class CrmUserService {
 
     static transactional = true
-
-    def selectionService
-
-    static String wildcard(String q) {
-        q = q.toLowerCase()
-        if (q.contains('*')) {
-            return q.replace('*', '%')
-        } else if (q[0] == '=') { // Exact match.
-            return q[1..-1]
-        } else { // Starts with is default.
-            return q + '%'
-        }
-    }
 
     /**
      * Empty query = search all records.
@@ -59,13 +46,13 @@ class CrmUserService {
 
         ShiroCrmUser.createCriteria().list(params) {
             if (query.username) {
-                ilike('username', wildcard(query.username))
+                ilike('username', SearchUtils.wildcard(query.username))
             }
             if (query.name) {
-                ilike('name', wildcard(query.name))
+                ilike('name', SearchUtils.wildcard(query.name))
             }
             if (query.email) {
-                ilike('email', wildcard(query.email))
+                ilike('email', SearchUtils.wildcard(query.email))
             }
         }
     }

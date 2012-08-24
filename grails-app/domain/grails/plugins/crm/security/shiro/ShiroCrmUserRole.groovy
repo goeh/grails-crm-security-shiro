@@ -33,6 +33,9 @@ class ShiroCrmUserRole {
         role()
         expires(nullable:true)
     }
+    static mapping = {
+        table 'crm_user_role'
+    }
     String toString() {
         role.toString()
     }

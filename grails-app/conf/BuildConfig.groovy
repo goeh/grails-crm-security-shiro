@@ -15,59 +15,40 @@ grails.project.dependency.resolution = {
     log "warn" // log level of Ivy resolver, either 'error', 'warn', 'info', 'debug' or 'verbose'
     repositories {
         grailsCentral()
-        // uncomment the below to enable remote dependency resolution
-        // from public Maven repositories
-        mavenCentral()
-        //mavenLocal()
-        mavenRepo "http://labs.technipelago.se/repo/plugins-releases-local/"
+        //mavenCentral()
         mavenRepo "http://labs.technipelago.se/repo/crm-releases-local/"
-        //mavenRepo "http://snapshots.repository.codehaus.org"
-        //mavenRepo "http://repository.codehaus.org"
-        //mavenRepo "http://download.java.net/maven/2/"
-        //mavenRepo "http://repository.jboss.com/maven2/"
+        mavenRepo "http://labs.technipelago.se/repo/plugins-releases-local/"
     }
     dependencies {
-        // specify dependencies here under either 'build', 'compile', 'runtime', 'test' or 'provided' scopes eg.
-
-        // runtime 'mysql:mysql-connector-java:5.1.5'
     }
 
     plugins {
-        runtime ":hibernate:$grailsVersion"
         build(":tomcat:$grailsVersion",
-                ":release:2.0.3") {
+                ":release:2.0.4") {
             export = false
         }
+        runtime ":hibernate:$grailsVersion"
+
+        test(":spock:0.6") { export = false }
+        test(":codenarc:latest.integration") { export = false }
+
+        compile(":platform-core:1.0.M6") { excludes 'resources' }
         compile ':shiro:1.1.4'
 
-        test(":spock:0.6")
-        test ':codenarc:latest.integration'
-
-        runtime ":jquery:1.7.1"
-        runtime(":twitter-bootstrap:2.0.2.24") {
-            excludes 'resources'
-        }
-        runtime ":resources:1.1.6"
-
-        runtime ":mail:1.0"
-
-        compile ":platform-core:1.0.M2-SNAPSHOT"
-        compile "grails.crm:crm-core:latest.integration"
         compile ":cache:1.0.0"
         //compile ":cache-ehcache:1.0.0.M2"
 
+        compile ":resources:1.2-RC1"
+        runtime ":jquery:1.8.0"
+        runtime ":mail:1.0"
+        runtime ":simple-captcha:0.8.5"
         runtime ":text-template:latest.integration"
 
-        runtime "grails.crm:crm-feature:latest.integration"
-
+        compile "grails.crm:crm-core:latest.integration"
         runtime "grails.crm:crm-ui-bootstrap:latest.integration"
-
-        runtime ":selection:latest.integration"
-        runtime ":selection-repository:latest.integration"
+        runtime "grails.crm:crm-feature:latest.integration"
     }
 }
-
-//grails.plugin.location.'crm-core'="../crm-core"
 
 codenarc {
     reports = {

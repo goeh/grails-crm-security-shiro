@@ -19,7 +19,7 @@ class CrmSecurityShiroGrailsPlugin {
     // Dependency group
     def groupId = "grails.crm"
     // the plugin version
-    def version = "0.9.8.8"
+    def version = "1.0-SNAPSHOT"
     // the version or versions of Grails the plugin is designed for
     def grailsVersion = "2.0 > *"
     // the other plugins this plugin depends on
@@ -46,15 +46,29 @@ This plugin leverage the shiro plugin to authenticate/authorize Grails CRM users
     def scm = [url: "https://github.com/goeh/grails-crm-security-shiro"]
 
     def features = {
+        security {
+            description "Apache Shiro Security"
+            link controller: 'shiroCrmTenant'
+            enabled true
+            required true
+            hidden true
+            permissions {
+                guest "shiroCrmTenant:index,activate"
+                user "shiroCrmTenant:index,activate,create,edit"
+                admin "shiroCrmTenant:*"
+            }
+        }
         register {
             description "User Registration"
             link controller: 'crmRegister'
             enabled true
+            hidden true
         }
         password {
             description "Reset Password"
             link controller: 'resetPassword'
             enabled true
+            hidden true
         }
     }
 
@@ -71,4 +85,9 @@ This plugin leverage the shiro plugin to authenticate/authorize Grails CRM users
         }
     }
 
+    def doWithApplicationContext = { applicationContext ->
+
+        def shiroCrmSecurityService = applicationContext.getBean("shiroCrmSecurityService")
+
+    }
 }

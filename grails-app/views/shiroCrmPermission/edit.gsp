@@ -14,14 +14,14 @@
     <div class="span9">
 
         <g:hasErrors bean="${shiroCrmNamedPermission}">
-            <bootstrap:alert class="alert-error">
+            <crm:alert class="alert-error">
                 <ul>
                     <g:eachError bean="${shiroCrmNamedPermission}" var="error">
                         <li <g:if test="${error in org.springframework.validation.FieldError}">data-field-id="${error.field}"</g:if>><g:message
                                 error="${error}"/></li>
                     </g:eachError>
                 </ul>
-            </bootstrap:alert>
+            </crm:alert>
         </g:hasErrors>
 
         <g:form class="form-horizontal" action="edit"
@@ -37,9 +37,9 @@
 
                 <div class="controls">
                     <g:each in="${shiroCrmNamedPermission.permissions}" var="perm">
-                        <input type="text" name="permissions" maxlength="255" class="span4" value="${perm.encodeAsHTML()}"/><br/>
+                        <input type="text" name="permissions" maxlength="255" class="span9" value="${perm.encodeAsHTML()}"/><br/>
                     </g:each>
-                    <input type="text" name="permissions" maxlength="255" class="span4" value=""/><br/>
+                    <input type="text" name="permissions" maxlength="255" class="span9" value=""/><br/>
                 </div>
             </div>
 

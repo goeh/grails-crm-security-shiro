@@ -36,46 +36,25 @@ class ShiroCrmUserController {
     def grailsApplication
     def shiroCrmSecurityService
     def crmUserService
-    def selectionService
 
     def index() {
-       // If any query parameters are specified in the URL, let them override the last query stored in session.
         def cmd = new CrmUserQueryCommand()
-        def query = params.getSelectionQuery()
-        bindData(cmd, query ?: session.crmUserQuery)
+        bindData(cmd, params)
         [cmd: cmd]
     }
 
     def list() {
-        def baseURI = new URI('bean://crmUserService/list')
-        def query = params.getSelectionQuery()
-        def uri
-
-        switch (request.method) {
-            case 'GET':
-                uri = params.getSelectionURI() ?: selectionService.addQuery(baseURI, query)
-                break
-            case 'POST':
-                uri = selectionService.addQuery(baseURI, query)
-                session.crmUserQuery = query
-                break
-        }
 
         params.max = Math.min(params.max ? params.int('max') : 10, 100)
 
         def result
         try {
-            result = selectionService.select(uri, params)
-            [result: result, totalCount: result.totalCount, selection: uri]
+            result = crmUserService.list(params, params)
+            [result: result, totalCount: result.totalCount]
         } catch (Exception e) {
             flash.error = e.message
-            [result: [], totalCount: 0, selection: uri]
+            [result: [], totalCount: 0]
         }
-    }
-
-    def clearQuery() {
-        session.crmUserQuery = null
-        redirect(action: "index")
     }
 
     def show() {
