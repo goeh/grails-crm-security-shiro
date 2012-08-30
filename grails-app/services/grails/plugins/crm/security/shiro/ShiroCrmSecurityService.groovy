@@ -31,6 +31,7 @@ import org.apache.shiro.crypto.hash.Sha512Hash
 import org.apache.shiro.crypto.SecureRandomNumberGenerator
 import grails.events.Listener
 import org.grails.plugin.platform.events.EventMessage
+import org.codehaus.groovy.grails.web.metaclass.BindDynamicMethod
 
 class ShiroCrmSecurityService implements CrmSecurityService {
 
@@ -114,7 +115,7 @@ class ShiroCrmSecurityService implements CrmSecurityService {
         if (!username) {
             username = SecurityUtils.subject?.principal?.toString()
             if (!username) {
-                throw new UnauthorizedException("not authenticated")
+                throw new UnauthorizedException("Can't update user [$username] because user is not authenticated")
             }
         }
         def user = ShiroCrmUser.findByUsername(username)
@@ -122,11 +123,8 @@ class ShiroCrmSecurityService implements CrmSecurityService {
             throw new CrmException("user.not.found.message", [username])
         }
 
-        // Arghhh why is not bindData available to services??????!!!!!!
-        def safeProps = props.findAll {ShiroCrmUser.BIND_WHITELIST.contains(it.key)}
-        safeProps.each {key, value ->
-            user[key] = value
-        }
+        def args = [user, props, [include: ShiroCrmUser.BIND_WHITELIST]]
+        new BindDynamicMethod().invoke(user, 'bind', args.toArray())
 
         if (props.password) {
             def salt = generateSalt()
@@ -179,59 +177,76 @@ class ShiroCrmSecurityService implements CrmSecurityService {
     }
 
     /**
-     * Create new tenant.
+     * Create new tenant, owned by the current user.
      *
      * @param tenantName name of tenant
-     * @param parent optional parent tenant
-     * @param owner username of tenant owner
-     * @param locale default locale for this tenant
+     * @param params optional parameters (owner, locale, etc.)
      * @return info about newly created tenant (DAO)
      */
-    Map<String, Object> createTenant(String tenantName, Long parent = null, String owner = null, Locale locale = null) {
+    Map<String, Object> createTenant(String tenantName, Map<String, Object> params = [:], Closure initializer = null) {
         if (!tenantName) {
-            throw new IllegalArgumentException("tenantName is null")
+            throw new IllegalArgumentException("Can't create tenant because tenantName is null")
         }
-        if (!owner) {
-            owner = SecurityUtils.subject.principal?.toString()
-            if (!owner) {
-                throw new UnauthorizedException("not authenticated")
-            }
+        def username = SecurityUtils.subject.principal?.toString()
+        if (!username) {
+            throw new UnauthorizedException("Can't create tenant [$tenantName] because user is not authenticated")
         }
-        def user = ShiroCrmUser.findByUsername(owner, [cache: true])
+        def user = ShiroCrmUser.findByUsernameAndEnabled(username, true, [cache: true])
         if (!user) {
-            throw new CrmException("user.not.found.message", [owner])
+            throw new CrmException("user.not.found.message", [username])
         }
-        def existing = ShiroCrmTenant.findByUserAndName(user, tenantName, [cache: true])
+        def existing = ShiroCrmTenant.findByUserAndName(user, tenantName, true, [cache: true])
         if (existing) {
-            throw new IllegalArgumentException("Tenant [$tenantName] already exists")
+            throw new IllegalArgumentException("Can't create tenant [$tenantName] because user [$username] already has a tenant with that name")
         }
-        def parentTenant
+        def parent = params.remove('parent')
         if (parent) {
-            parentTenant = ShiroCrmTenant.load(parent)
-            if (!parentTenant) {
-                throw new IllegalArgumentException("Parent tenant [$parent] does not exist")
+            if (parent instanceof Number) {
+                parent = ShiroCrmTenant.load(parent)
+            }
+            if (!parent) {
+                throw new IllegalArgumentException("Can't create tnenant [$tenantName] because parent tenant [${params.parent}] does not exist")
             }
         }
 
         // Create new tenant.
-        def tenant = new ShiroCrmTenant(user: user, name: tenantName, parent: parentTenant, locale: locale ? locale.toString() : null).save(failOnError: true, flush: true)
+        def tenant = new ShiroCrmTenant(user: user, name: tenantName, parent: parent, locale: params.remove('locale')?.toString())
+
+        params.each {key, value ->
+            tenant.setOption(key, value)
+        }
+
+        tenant.save(failOnError: true, flush: true)
 
         addRole(user, 'admin', tenant.id)
 
-        crmFeatureService.enableFeature('security', tenant.id)
-        //setupFeaturePermissions('default', null, tenant.id)
+        if(initializer != null) {
+            initializer.call(tenant.id)
+        }
+
+        enableDefaultFeatures(tenant.id)
 
         def tenantInfo = tenant.dao
         event(for: "crm", topic: "tenantCreated", data: tenantInfo)
         return tenantInfo
     }
 
-    private void addRole(ShiroCrmUser user, String roleName, Long tenant = TenantUtils.tenant) {
-        def role = ShiroCrmRole.findByNameAndTenantId(roleName, tenant)
-        if (!role) {
-            role = new ShiroCrmRole(name: roleName, param: roleName, tenantId: tenant)
+    /**
+     * Enable features that should be enabled by default (including required features).
+     *
+     * @param tenant
+     */
+    private void enableDefaultFeatures(Long tenant) {
+        for (feature in crmFeatureService.getApplicationFeatures().findAll {it.enabled}) {
+            crmFeatureService.enableFeature(feature.name, tenant)
         }
-        role.save(failOnError: true, flush: true)
+    }
+
+    private void addRole(ShiroCrmUser user, String roleName, Long tenant = TenantUtils.tenant) {
+        def role = ShiroCrmRole.findByNameAndTenantId(roleName, tenant, [cache:true])
+        if (!role) {
+            role = new ShiroCrmRole(name: roleName, param: roleName, tenantId: tenant).save(failOnError: true, flush: true)
+        }
         new ShiroCrmUserRole(user: user, role: role).save(failOnError: true, flush: true)
     }
 
@@ -239,30 +254,45 @@ class ShiroCrmSecurityService implements CrmSecurityService {
     def enableFeature(EventMessage msg) {
         def event = msg.data // [feature: feature, tenant: tenant, role:role, expires:expires]
         def feature = crmFeatureService.getApplicationFeature(event.feature)
-        if(feature) {
+        if (feature) {
             def securityConfig = grailsApplication.config.crm.security
             def permissions = securityConfig[feature]?.permission ?: feature.permissions
             def role = event.role
             if (permissions && role) {
                 permissions = [(role): permissions[role]]
             }
-            if(permissions) {
+            if (permissions) {
                 setupFeaturePermissions(feature.name, permissions, event.tenant)
             }
         }
     }
 
+    @Listener(namespace = "security", topic = "enableFeature")
+    def enableSecurity(event) {
+        // event = [feature: feature, tenant: tenant, role:role, expires:expires]
+        def tenant = getTenantInfo(event.tenant)
+        println "SECURITY ENABLED FOR TENANT ${tenant.id}"
+        //TenantUtils.withTenant(tenant.id) { }
+    }
+
     void setupFeaturePermissions(String feature, Map<String, List> permissionMap, Long tenant = TenantUtils.tenant) {
         permissionMap.each {roleName, permissions ->
-            def role = ShiroCrmRole.findByNameAndTenantId(roleName, tenant)
+            def role = ShiroCrmRole.findByNameAndTenantId(roleName, tenant, [lock: true])
             if (!role) {
                 role = new ShiroCrmRole(name: roleName, param: roleName, tenantId: tenant)
             }
-            def namedPermission = "${feature}.$roleName".toString()
-            addNamedPermission(namedPermission, permissions)
-            if (!role.permissions?.contains(namedPermission)) {
-                role.addToPermissions(namedPermission)
-                log.debug("Permission [$namedPermission] added to tenant [$tenant]")
+            if (!(permissions instanceof List)) {
+                permissions = [permissions]
+            }
+
+            def alias = "${feature}.$roleName".toString()
+            addPermissionAlias(alias, permissions)
+            if (!role.permissions?.contains(alias)) {
+                role.addToPermissions(alias)
+                log.debug("Permission [$alias] added to tenant [$tenant]")
+            }
+            if (roleName == 'admin') {
+                role.addToPermissions("crmFeature:*:$tenant".toString())
             }
             role.save(failOnError: true, flush: true)
         }
@@ -362,12 +392,12 @@ class ShiroCrmSecurityService implements CrmSecurityService {
      */
     boolean isValidTenant(Long tenantId, String username = null) {
         if (!username) {
-            username = currentUser?.username
+            username = SecurityUtils.subject?.principal?.toString()
             if (!username) {
                 throw new UnauthorizedException("not authenticated")
             }
         }
-        def user = ShiroCrmUser.findByUsername(username, [cache: true])
+        def user = ShiroCrmUser.findByUsernameAndEnabled(username, true, [cache: true])
         if (!user) {
             throw new CrmException("user.not.found.message", [username])
         }
@@ -504,7 +534,7 @@ class ShiroCrmSecurityService implements CrmSecurityService {
             }
         }
         def result = new HashSet<Long>()
-        def user = ShiroCrmUser.findByUsername(username, [cache: true])
+        def user = ShiroCrmUser.findByUsernameAndEnabled(username, true, [cache: true])
         if (user) {
             // Owned tenants
             def tmp = ShiroCrmTenant.findAllByUser(user)*.id
@@ -546,7 +576,7 @@ class ShiroCrmSecurityService implements CrmSecurityService {
             // Check that the user has permission to access this tenant.
             def availableTenants = getAllTenants(username)
             if (!availableTenants.contains(tenant)) {
-                throw new IllegalArgumentException("Tenant [$tenant] is not a valid tenant for user [$username]")
+                throw new IllegalArgumentException("Can't set default tenant to [$tenant] because it's not a valid tenant for user [$username]")
             }
         }
         user.discard()
@@ -563,24 +593,32 @@ class ShiroCrmSecurityService implements CrmSecurityService {
      * @param permissions List of Shiro Wildcard permission strings
      */
     @CacheEvict(value = 'permissions', key = '#name')
-    ShiroCrmNamedPermission addNamedPermission(String name, Object permissions) {
-        def perm = ShiroCrmNamedPermission.findByName(name, [cache: true])
+    void addPermissionAlias(String name, List<String> permissions) {
+        def perm = ShiroCrmNamedPermission.findByName(name)
         if (!perm) {
             perm = new ShiroCrmNamedPermission(name: name)
-            if (!(permissions instanceof Collection)) {
-                permissions = [permissions]
-            }
-            for (p in permissions) {
+        }
+        for (p in permissions) {
+            if (!perm.permissions?.contains(p)) {
                 perm.addToPermissions(p)
             }
-            perm.save(failOnError: true, flush: true)
         }
-        return perm
+        perm.save(failOnError: true, flush: true)
     }
 
     @Cacheable('permissions')
-    List<String> getNamedPermission(String name) {
+    List<String> getPermissionAlias(String name) {
         ShiroCrmNamedPermission.findByName(name, [cache: true])?.permissions?.toList() ?: []
+    }
+
+    @CacheEvict(value = 'permissions', key = '#name')
+    boolean removePermissionAlias(String name) {
+        def perm = ShiroCrmNamedPermission.findByName(name)
+        if (perm) {
+            perm.delete()
+            return true
+        }
+        return false
     }
 
     /**
@@ -593,9 +631,9 @@ class ShiroCrmSecurityService implements CrmSecurityService {
         def tenant = TenantUtils.getTenant()
         def role = ShiroCrmRole.findByNameAndTenantId(rolename, tenant, [cache: true])
         if (role) {
-            throw new IllegalArgumentException("Role [$rolename] already exists")
+            throw new IllegalArgumentException("Can't create role [$rolename] in tenant [$tenant] because role already exists")
         }
-        role = new ShiroCrmRole(name: rolename, tenantId: tenant)
+        role = new ShiroCrmRole(name: rolename, param: rolename, tenantId: tenant)
         for (perm in permissions) {
             role.addToPermissions(perm)
         }
@@ -608,13 +646,13 @@ class ShiroCrmSecurityService implements CrmSecurityService {
 
     ShiroCrmUserRole addUserRole(String username, String rolename, Date expires = null) {
         def tenant = TenantUtils.getTenant()
+        def user = ShiroCrmUser.findByUsernameAndEnabled(username, true, [cache: true])
+        if (!user) {
+            throw new IllegalArgumentException("Can't add role [$rolename] in tenant [$tenant] to user [$username] because user is not found")
+        }
         def role = ShiroCrmRole.findByNameAndTenantId(rolename, tenant, [cache: true])
         if (!role) {
-            throw new IllegalArgumentException("role [$rolename] not found")
-        }
-        def user = ShiroCrmUser.findByUsername(username, [cache: true])
-        if (!user) {
-            throw new IllegalArgumentException("user [$username] not found")
+            role = new ShiroCrmRole(tenantId: tenant, name: rolename, param: rolename).save(failOnError: true, flush: true)
         }
         def userrole = ShiroCrmUserRole.findByUserAndRole(user, role, [cache: true])
         if (!userrole) {
@@ -627,26 +665,29 @@ class ShiroCrmSecurityService implements CrmSecurityService {
         return userrole
     }
 
-    boolean addRolePermission(String rolename, String permission, Long tenant = null) {
+    void addPermissionToRole(String permission, String rolename, Long tenant = TenantUtils.getTenant()) {
+        def role = ShiroCrmRole.findByNameAndTenantId(rolename, tenant, [lock: true])
+        if (!role) {
+            throw new IllegalArgumentException("Can't add permission [$permission] to role [$rolename] in tenant [$tenant] because role is not found in this tenant")
+        }
+        if (!role.permissions?.contains(permission)) {
+            role.addToPermissions(permission)
+        }
+    }
+
+    void addPermissionToUser(String permission, String username = null, Long tenant = null) {
         if (!tenant) {
             tenant = TenantUtils.getTenant()
         }
-        def role = ShiroCrmRole.findByNameAndTenantId(rolename, tenant, [cache: true])
-        if (!role) {
-            throw new IllegalArgumentException("role [$rolename] not found in tenant [$tenant]")
+        if (!username) {
+            username = SecurityUtils.subject?.principal?.toString()
+            if (!username) {
+                throw new UnauthorizedException("not authenticated")
+            }
         }
-        if (role.permissions?.contains(permission)) {
-            return false
-        }
-        role.addToPermissions(permission)
-        return true
-    }
-
-    ShiroCrmUserPermission addUserPermission(String username, String permission) {
-        def tenant = TenantUtils.getTenant()
-        def user = ShiroCrmUser.findByUsername(username, [cache: true])
+        def user = ShiroCrmUser.findByUsernameAndEnabled(username, true, [cache: true])
         if (!user) {
-            throw new IllegalArgumentException("user [$username] not found")
+            throw new IllegalArgumentException("Can't add permission [$permission] to user [$username] because user is not found")
         }
         def perm = ShiroCrmUserPermission.createCriteria().get() {
             eq('user', user)
@@ -660,7 +701,6 @@ class ShiroCrmSecurityService implements CrmSecurityService {
             user.addToPermissions(perm = new ShiroCrmUserPermission(tenantId: tenant, permissionsString: permission))
             user.save(flush: true)
         }
-        return perm
     }
 
     /**
@@ -668,11 +708,7 @@ class ShiroCrmSecurityService implements CrmSecurityService {
      * @param tenant
      * @return list of ShiroCrmUserPermission and ShiroCrmUserRole instances
      */
-    List getTenantPermissions(Long tenant = null) {
-        if (tenant == null) {
-            tenant = TenantUtils.getTenant()
-        }
-
+    List getTenantPermissions(Long tenant = TenantUtils.getTenant()) {
         def result = []
         def roles = ShiroCrmUserRole.createCriteria().list() {
             role {
@@ -697,15 +733,21 @@ class ShiroCrmSecurityService implements CrmSecurityService {
         return result
     }
 
+    List<Map<String, Object>> getTenantUsers(Long tenant = TenantUtils.tenant) {
+        getTenantPermissions(tenant).collect{it.user}.unique{it.username}.sort{it.username}.collect{
+            [id:it.id, guid:it.guid, username:it.username, name:it.name, email:it.email]
+        }
+    }
+
     ShiroCrmRole updatePermissionsForRole(Long tenant = null, String rolename, List<String> permissions) {
         if (tenant == null) {
             tenant = TenantUtils.getTenant()
         }
-        def role = ShiroCrmRole.findByNameAndTenantId(rolename, tenant, [cache: true])
+        def role = ShiroCrmRole.findByNameAndTenantId(rolename, tenant, [lock: true])
         if (role) {
             role.permissions.clear()
         } else {
-            role = new ShiroCrmRole(name: rolename, tenantId: tenant)
+            role = new ShiroCrmRole(name: rolename, param: rolename, tenantId: tenant)
             log.warn("Created missing role [$rolename] for tenant [$tenant]")
         }
         for (perm in permissions) {

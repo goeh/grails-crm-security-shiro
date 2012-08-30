@@ -173,12 +173,9 @@ class ShiroDbRealm {
     }
 
     private boolean implies(Object requiredPermission, String permString) {
-        def namedPermissions = shiroCrmSecurityService.getNamedPermission(permString)
-        if(namedPermissions) {
-            for(p in namedPermissions) {
-                if(implies(requiredPermission, p)) {
-                    return true
-                }
+        for(p in shiroCrmSecurityService.getPermissionAlias(permString)) {
+            if(implies(requiredPermission, p)) {
+                return true
             }
         }
         // Create a real permission instance from the database permission.

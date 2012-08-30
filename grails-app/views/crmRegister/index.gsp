@@ -36,19 +36,19 @@
 
             <f:with bean="${cmd}">
                 <f:field property="username" label="register.username.label">
-                    <g:textField name="username" value="${cmd.username}" autofocus=""
+                    <g:textField name="username" value="${cmd.username}" autofocus="" required=""
                                  placeholder="${message(code:'register.username.placeholder')}"/>
                 </f:field>
                 <f:field property="name" label="register.name.label">
-                    <g:textField name="name" value="${cmd.name}"
+                    <g:textField name="name" value="${cmd.name}" required=""
                                  placeholder="${message(code:'register.name.placeholder')}"/>
                 </f:field>
                 <f:field property="email" label="register.email.label">
                     <input type="email" name="email" id="email" value="${cmd.email?.encodeAsHTML()}"
-                           placeholder="${message(code: 'register.email.placeholder')}"/>
+                            required="" placeholder="${message(code: 'register.email.placeholder')}"/>
                 </f:field>
                 <f:field property="password" label="register.password.label">
-                    <g:passwordField name="password" value="${cmd.password}"
+                    <g:passwordField name="password" value="${cmd.password}" required=""
                                      placeholder="${message(code:'register.password.placeholder')}"/>
                 </f:field>
                 <f:field property="telephone" label="register.telephone.label">
@@ -56,7 +56,7 @@
                                  placeholder="${message(code:'register.telephone.placeholder')}"/>
                 </f:field>
                 <f:field property="postalCode" label="register.postalCode.label">
-                    <g:textField name="postalCode" value="${cmd.postalCode}"
+                    <g:textField name="postalCode" value="${cmd.postalCode}" required=""
                                  placeholder="${message(code:'register.postalCode.placeholder')}"/>
                 </f:field>
                 <f:field property="country" label="register.country.label">
@@ -73,7 +73,7 @@
                 <label class="control-label" for="captcha"><g:message code="register.captcha.label" default="Enter Security Code"/></label>
 
                 <div class="controls">
-                    <g:textField name="captcha" size="8" title="${message(code:'register.captcha.title', default:'')}"/>
+                    <g:textField name="captcha" size="8" title="${message(code:'register.captcha.title', default:'')}" required=""/>
                     <img src="${createLink(controller: 'simpleCaptcha', action: 'captcha')}"/>
                 </div>
             </div>

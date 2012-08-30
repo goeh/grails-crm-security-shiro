@@ -21,6 +21,7 @@ import org.springframework.web.servlet.support.RequestContextUtils as RCU
 import org.springframework.dao.DataIntegrityViolationException
 import grails.plugins.crm.core.TenantUtils
 import grails.plugins.crm.core.CrmException
+import grails.plugins.crm.core.DateUtils
 
 /**
  * This controller lets a user manage her account/tenant.
@@ -84,8 +85,12 @@ class ShiroCrmTenantController {
                 shiroCrmTenant.user = shiroCrmUser // To get validate to pass user must be set.
                 if (shiroCrmTenant.validate()) {
                     try {
-                        def locale = RCU.getLocale(request)
-                        def tenant = crmSecurityService.createTenant(shiroCrmTenant.name, null, shiroCrmUser.username, locale)
+                        def options = [locale:RCU.getLocale(request)]
+                        def trialDays = grailsApplication.config.crm.tenant.trialDays
+                        if (trialDays) {
+                            options.expires = new java.sql.Date(DateUtils.endOfWeek(trialDays).time)
+                        }
+                        def tenant = crmSecurityService.createTenant(shiroCrmTenant.name, options)
                         def id = tenant.id
                         if (!TenantUtils.tenant) {
                             // No active tenant, set the newly created tenant as active.
@@ -97,7 +102,10 @@ class ShiroCrmTenantController {
                         }
                         def features = params.list('features')
                         for (f in features) {
-                            crmFeatureService.enableFeature(f, id)
+                            def appFeature = crmFeatureService.getApplicationFeature(f)
+                            if(appFeature && !appFeature.enabled) {
+                                crmFeatureService.enableFeature(f, id)
+                            }
                         }
                         def installedFeatures = features.collect {
                             g.message(code: 'feature.' + it + '.label', default: it)
@@ -130,7 +138,7 @@ class ShiroCrmTenantController {
             return
         }
 
-        def invitations = crmInvitationService.getInvitationsFor(shiroCrmTenant, shiroCrmTenant.id)
+        def invitations = crmInvitationService ? crmInvitationService.getInvitationsFor(shiroCrmTenant, shiroCrmTenant.id) : []
 
         switch (request.method) {
             case 'GET':

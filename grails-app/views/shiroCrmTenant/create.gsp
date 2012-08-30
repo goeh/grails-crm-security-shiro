@@ -34,7 +34,7 @@
                         <label class="control-label"><g:message code="shiroCrmTenant.name.label"/></label>
 
                         <div class="controls">
-                            <g:textField name="name" maxlength="40" autofocus="" value="${shiroCrmTenant.name}"
+                            <g:textField name="name" maxlength="40" autofocus="" required="" value="${shiroCrmTenant.name}"
                                          placeholder="${message(code:'shiroCrmTenant.name.placeholder')}"/>
                         </div>
                     </div>
@@ -60,29 +60,7 @@
         </div>
 
         <div class="span6">
-            <tt:html name="account-create">
-                <div class="alert alert-info">
-                    <h4>Vad är en vy?</h4>
-
-                    <p>En vy är som en egen isolerad databas där du samlar information om avtal, leverantörer och dokument.</p>
-
-                    <p>Du kan skapa flera vyer om du till exempel vill skilja på dina privata avtal och firmans avtal,
-                    eller om du använder Avtala.se på ett större företag med verksamhet på flera orter.
-                    Då kan du skapa flera vyer för att hålla isär informationen på ett smidigt sätt.</p>
-                </div>
-
-                <div class="alert alert-error">
-                    <h4>Vad kostar det?</h4>
-
-                    <p>Alla vytyper har har en <strong>kostnadsfri testperiod om 30 dagar</strong>.
-                    Du kan när som helst under testperioden radera din vy om du känner att du inte har behov av funktionerna.
-                    </p>
-
-                    <p>För att kunna fortsätta använda din vy efter testperioden måste du beställa ett abonnemang.
-                    Vissa funktioner är dock kostnadsfria för privat bruk.
-                    Se menyn <strong>Favoriter &raquo; Priser</strong> för information om de olika abonnemangen.</p>
-                </div>
-            </tt:html>
+            <tt:html name="account-create-help"></tt:html>
         </div>
     </div>
 

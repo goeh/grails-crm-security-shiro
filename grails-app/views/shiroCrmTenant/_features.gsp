@@ -1,6 +1,6 @@
 <%@ page contentType="text/html;charset=UTF-8" defaultCodec="html" %>
 
-<g:each in="${allFeatures.findAll{!it.hidden}}" var="f">
+<g:each in="${allFeatures.findAll{!it.hidden}.sort{it.name}}" var="f">
     <div class="well well-small clearfix ${f.enabled ? 'enabled' : 'disabled'}${f.required ? ' feature-required' : ''}">
 
         <h4>
@@ -19,8 +19,8 @@
 
         <div>${message(code: 'feature.' + f.name + '.description', default: f.description)}</div>
 
-        <g:link controller="crmFeature" action="info"
-                params="${[id:shiroCrmTenant.id, name:f.name]}">Läs mer...</g:link>
+        <a href="${createLink(controller: 'crmFeature', action: 'info', params: [id: shiroCrmTenant.id, name: f.name])}"
+           data-toggle="modal" data-target="#modal-feature-info">Läs mer...</a>
 
     </div>
 </g:each>

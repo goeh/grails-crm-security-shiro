@@ -85,9 +85,4 @@ This plugin leverage the shiro plugin to authenticate/authorize Grails CRM users
         }
     }
 
-    def doWithApplicationContext = { applicationContext ->
-
-        def shiroCrmSecurityService = applicationContext.getBean("shiroCrmSecurityService")
-
-    }
 }

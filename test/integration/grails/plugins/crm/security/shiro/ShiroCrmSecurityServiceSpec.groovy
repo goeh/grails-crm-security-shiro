@@ -25,6 +25,7 @@ class ShiroCrmSecurityServiceSpec extends grails.plugin.spock.IntegrationSpec {
 
     def shiroCrmSecurityService
     def grailsApplication
+    def crmFeatureService
 
     def "create user"() {
         when:
@@ -73,9 +74,9 @@ class ShiroCrmSecurityServiceSpec extends grails.plugin.spock.IntegrationSpec {
     }
 
     def "create tenant"() {
-        def result
-
         given:
+        def result
+        def features
         shiroCrmSecurityService.createUser([username: "test5", name: "Test User", email: "test@test.com", password: "test123", enabled: true])
 
         when:
@@ -87,12 +88,14 @@ class ShiroCrmSecurityServiceSpec extends grails.plugin.spock.IntegrationSpec {
 
         when:
         shiroCrmSecurityService.runAs("test5") {
-            shiroCrmSecurityService.createTenant("My First Tenant")
-            shiroCrmSecurityService.createTenant("My Second Tenant")
+            def t1 = shiroCrmSecurityService.createTenant("My First Tenant")
+            def t2 = shiroCrmSecurityService.createTenant("My Second Tenant")
             result = shiroCrmSecurityService.getTenants()
+            features = crmFeatureService.getFeatures(t1.id)
         }
         then:
         result.size() == 2
+        features.find {it.name == 'security'}
     }
 
     def "update tenant"() {
@@ -213,7 +216,7 @@ class ShiroCrmSecurityServiceSpec extends grails.plugin.spock.IntegrationSpec {
 
         given:
         shiroCrmSecurityService.createUser([username: "test13", name: "Test User", email: "test@test.com", password: "test123", enabled: true])
-        shiroCrmSecurityService.addNamedPermission("test", "test:*")
+        shiroCrmSecurityService.addPermissionAlias("test", ["test:*"])
 
         when:
         shiroCrmSecurityService.runAs("test13") {
@@ -243,7 +246,7 @@ class ShiroCrmSecurityServiceSpec extends grails.plugin.spock.IntegrationSpec {
 
         when:
         TenantUtils.withTenant(tenant.id) {
-            shiroCrmSecurityService.addUserPermission("test13", "test")
+            shiroCrmSecurityService.addPermissionToUser("test", "test13")
             shiroCrmSecurityService.runAs("test13") {
                 result = shiroCrmSecurityService.isPermitted("test:protected")
                 SecurityUtils.subject.checkPermission("test:protected")
@@ -261,13 +264,13 @@ class ShiroCrmSecurityServiceSpec extends grails.plugin.spock.IntegrationSpec {
 
         given:
         shiroCrmSecurityService.createUser([username: "test14", name: "Test User", email: "test@test.com", password: "test123", enabled: true])
-        shiroCrmSecurityService.addNamedPermission("test", "test:*")
+        shiroCrmSecurityService.addPermissionAlias("test", ["test:*"])
 
         when:
         shiroCrmSecurityService.runAs("test14") {
             tenant = shiroCrmSecurityService.createTenant("Test Tenant")
             TenantUtils.withTenant(tenant.id) {
-                shiroCrmSecurityService.addUserPermission("test14", "test")
+                shiroCrmSecurityService.addPermissionToUser("test", "test14")
             }
         }
         then:
@@ -298,9 +301,9 @@ class ShiroCrmSecurityServiceSpec extends grails.plugin.spock.IntegrationSpec {
 
         given:
         shiroCrmSecurityService.createUser([username: "test15", name: "Test User", email: "test@test.com", password: "test123", enabled: true])
-        shiroCrmSecurityService.addNamedPermission("foo", "foo:*")
-        shiroCrmSecurityService.addNamedPermission("bar", "bar:*")
-        shiroCrmSecurityService.addNamedPermission("baz", "baz:*")
+        shiroCrmSecurityService.addPermissionAlias("foo", ["foo:*"])
+        shiroCrmSecurityService.addPermissionAlias("bar", ["bar:*"])
+        shiroCrmSecurityService.addPermissionAlias("baz", ["baz:*"])
 
         when:
         shiroCrmSecurityService.runAs("test15") {
@@ -323,9 +326,9 @@ class ShiroCrmSecurityServiceSpec extends grails.plugin.spock.IntegrationSpec {
         result = []
         shiroCrmSecurityService.runAs("test15") {
             TenantUtils.withTenant(tenant.id) {
-                shiroCrmSecurityService.addRolePermission("tester", "foo")
-                shiroCrmSecurityService.addRolePermission("tester", "bar")
-                shiroCrmSecurityService.addRolePermission("tester", "baz")
+                shiroCrmSecurityService.addPermissionToRole("foo", "tester")
+                shiroCrmSecurityService.addPermissionToRole("bar", "tester")
+                shiroCrmSecurityService.addPermissionToRole("baz", "tester")
 
                 result << SecurityUtils.subject.hasRole("tester")
                 result << shiroCrmSecurityService.isPermitted("foo:index")
@@ -351,8 +354,8 @@ class ShiroCrmSecurityServiceSpec extends grails.plugin.spock.IntegrationSpec {
         when:
         shiroCrmSecurityService.runAs("test16") {
             result << shiroCrmSecurityService.createTenant("Default")
-            result << shiroCrmSecurityService.createTenant("Svenska", null, null, swedish)
-            result << shiroCrmSecurityService.createTenant("Español", null, null, spanish)
+            result << shiroCrmSecurityService.createTenant("Svenska", [locale: swedish])
+            result << shiroCrmSecurityService.createTenant("Español", [locale: spanish])
         }
         then:
         result[0].locale == locale

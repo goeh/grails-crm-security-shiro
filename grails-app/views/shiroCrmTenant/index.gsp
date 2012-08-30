@@ -13,43 +13,24 @@
 <g:if test="${shiroCrmTenantList}">
     <g:render template="list" model="[user:shiroCrmUser, result:shiroCrmTenantList]"/>
 </g:if>
+<g:else>
+        <tt:html name="account-index-empty">
+
+            <h2>Start by creating your first CRM account.</h2>
+
+            <p>All information you enter into Grails CRM will be associated with an account. You can have more than one account per user.</p>
+
+            <blockquote>Example: If you are running two different businesses and also want to keep track of your private contacts, you typically create three CRM accounts.</blockquote>
+
+        </tt:html>
+</g:else>
 
 <div class="form-actions">
    <crm:button type="link" action="create" visual="success" icon="icon-file icon-white"
-               label="shiroCrmTenant.button.create.label" permission="shiroCrmTenant:create"/>
+               label="shiroCrmTenant.button.create.label"/>
 </div>
 
-<tt:html name="account-index">
-<div class="row-fluid">
-
-    <div class="span6">
-        <div class="alert alert-info">
-            <h4>Vad är en vy?</h4>
-
-            <p>En vy är som en egen isolerad databas där du samlar information om avtal, leverantörer och dokument.</p>
-
-            <p>Du kan skapa flera vyer om du till exempel vill skilja på dina privata avtal och firmans avtal,
-            eller om du använder Avtala.se på ett större företag med verksamhet på flera orter.
-            Då kan du skapa flera vyer för att hålla isär informationen på ett smidigt sätt.</p>
-        </div>
-    </div>
-
-    <div class="span6">
-        <div class="alert alert-error">
-            <h4>Vad kostar det?</h4>
-
-            <p>Alla vytyper har har en <strong>kostnadsfri testperiod om 30 dagar</strong>.
-            Du kan när som helst under testperioden radera din vy om du känner att du inte har behov av funktionerna.
-            </p>
-
-            <p>För att kunna fortsätta använda din vy efter testperioden måste du beställa ett abonnemang.
-            Vissa funktioner är dock kostnadsfria för privat bruk.
-            Se menyn <strong>Favoriter &raquo; Priser</strong> för information om de olika abonnemangen.</p>
-        </div>
-    </div>
-
-</div>
-</tt:html>
+<tt:html name="account-index-main"></tt:html>
 
 </body>
 </html>

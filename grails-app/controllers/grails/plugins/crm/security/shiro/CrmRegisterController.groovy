@@ -133,7 +133,9 @@ class CrmRegisterController {
             if(bodyText && bodyHtml) {
                 multipart true
             }
-            from config.from
+            if(config.from) {
+                from config.from
+            }
             to params.email
             if (config.cc) {
                 cc config.cc
@@ -141,7 +143,7 @@ class CrmRegisterController {
             if (config.bcc) {
                 bcc config.bcc
             }
-            subject config.subject
+            subject config.subject ?: "Confirm registration"
             if (bodyText) {
                 text bodyText
             }
