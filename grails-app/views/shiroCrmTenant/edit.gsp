@@ -209,7 +209,7 @@
                 <p><span class="badge badge-warning">21</span> Gul etikett betyder att funktionen används mer sällan.
                 </p>
 
-                <p><span class="badge badge-error">0</span> Röd etikett betyder att funktionen inte används alls.</p>
+                <p><span class="badge badge-important">0</span> Röd etikett betyder att funktionen inte används alls.</p>
 
                 <p><span class="badge">?</span> Grå etikett betyder att användningen inte kan mätas med precision.</p>
 
