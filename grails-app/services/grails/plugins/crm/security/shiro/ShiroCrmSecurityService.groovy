@@ -32,6 +32,8 @@ import org.apache.shiro.crypto.SecureRandomNumberGenerator
 import grails.events.Listener
 import org.grails.plugin.platform.events.EventMessage
 import org.codehaus.groovy.grails.web.metaclass.BindDynamicMethod
+import javax.servlet.http.HttpServletRequest
+import org.codehaus.groovy.grails.web.util.WebUtils
 
 class ShiroCrmSecurityService implements CrmSecurityService {
 
@@ -220,7 +222,7 @@ class ShiroCrmSecurityService implements CrmSecurityService {
 
         addRole(user, 'admin', tenant.id)
 
-        if(initializer != null) {
+        if (initializer != null) {
             initializer.call(tenant.id)
         }
 
@@ -243,7 +245,7 @@ class ShiroCrmSecurityService implements CrmSecurityService {
     }
 
     private void addRole(ShiroCrmUser user, String roleName, Long tenant = TenantUtils.tenant) {
-        def role = ShiroCrmRole.findByNameAndTenantId(roleName, tenant, [cache:true])
+        def role = ShiroCrmRole.findByNameAndTenantId(roleName, tenant, [cache: true])
         if (!role) {
             role = new ShiroCrmRole(name: roleName, param: roleName, tenantId: tenant).save(failOnError: true, flush: true)
         }
@@ -271,7 +273,6 @@ class ShiroCrmSecurityService implements CrmSecurityService {
     def enableSecurity(event) {
         // event = [feature: feature, tenant: tenant, role:role, expires:expires]
         def tenant = getTenantInfo(event.tenant)
-        println "SECURITY ENABLED FOR TENANT ${tenant.id}"
         //TenantUtils.withTenant(tenant.id) { }
     }
 
@@ -500,6 +501,23 @@ class ShiroCrmSecurityService implements CrmSecurityService {
         event(for: "crm", topic: "tenantDeleted", data: tenantInfo)
 
         return true
+    }
+
+    void alert(HttpServletRequest request, String topic, String message = null) {
+        log.warn "SECURITY ALERT! $topic ${message ?: ''} [uri=${WebUtils.getForwardURI(request)}, ip=${request.remoteAddr}, tenant=${TenantUtils.tenant}, session=${request.session?.id}]"
+        def user
+        def tenant
+        try {
+            user = currentUser
+        } catch (Exception e) {
+            // Ignore.
+        }
+        try {
+            tenant = currentTenant
+        } catch (Exception e) {
+            // Ignore.
+        }
+        event for: "security", topic: topic, data: [request: request, message: message, user: user, tenant: tenant]
     }
 
     def hashPassword(String password, byte[] salt) {
@@ -734,8 +752,8 @@ class ShiroCrmSecurityService implements CrmSecurityService {
     }
 
     List<Map<String, Object>> getTenantUsers(Long tenant = TenantUtils.tenant) {
-        getTenantPermissions(tenant).collect{it.user}.unique{it.username}.sort{it.username}.collect{
-            [id:it.id, guid:it.guid, username:it.username, name:it.name, email:it.email]
+        getTenantPermissions(tenant).collect {it.user}.unique {it.username}.sort {it.username}.collect {
+            [id: it.id, guid: it.guid, username: it.username, name: it.name, email: it.email]
         }
     }
 

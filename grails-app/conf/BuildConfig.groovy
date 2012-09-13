@@ -38,7 +38,7 @@ grails.project.dependency.resolution = {
         compile ":cache:1.0.0"
         //compile ":cache-ehcache:1.0.0.M2"
 
-        compile ":resources:1.2-RC1"
+        compile ":resources:1.2.RC2"
         runtime ":jquery:1.8.0"
         runtime ":mail:1.0"
         runtime ":simple-captcha:0.8.5"

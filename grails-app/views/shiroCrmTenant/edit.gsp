@@ -71,7 +71,7 @@
                     </div>
 
                     <div class="control-group">
-                        <label class="control-label">Använd kostnader</label>
+                        <label class="control-label">Använd kostnader i avtalsbilden</label>
 
                         <div class="controls">
                             <label class="checkbox inline">
@@ -83,6 +83,23 @@
                                 <g:radio value="false" name="showCosts"
                                          checked="${!showCosts}"/>
                                 Nej
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="control-group">
+                        <label class="control-label">Antal parter för avtal</label>
+
+                        <div class="controls">
+                            <label class="checkbox">
+                                <g:radio value="false" name="partner2"
+                                         checked="${!partner2}"/>
+                                Använd en avtalspart
+                            </label>
+                            <label class="checkbox">
+                                <g:radio value="true" name="partner2"
+                                         checked="${partner2}"/>
+                                Använd två avtalsparter
                             </label>
                         </div>
                     </div>
@@ -260,8 +277,8 @@
 
         <g:each in="${invitationList}" var="inv">
             <tr>
-                <td>${inv.receiver}</td>
-                <td>user</td>
+                <td>${inv.receiver?.encodeAsHTML()}</td>
+                <td>${inv.param?.encodeAsHTML()}</td>
                 <td></td>
                 <td><g:formatDate format="yyyy-MM-dd" date="${inv.dateCreated}"/></td>
                 <td>Inbjudan skickad</td>
@@ -273,7 +290,7 @@
     <div class="form-actions">
         <crm:button type="url" visual="primary" icon="icon-share-alt icon-white" data-toggle="modal"
                     href="#modal-share-account"
-                    label="account.button.share.label" permission="shiroCrmTenant:share"/>
+                    label="account.button.share.label" permission="crmInvitation:share"/>
     </div>
 </div>
 

@@ -85,7 +85,7 @@ class ShiroCrmTenantController {
                 shiroCrmTenant.user = shiroCrmUser // To get validate to pass user must be set.
                 if (shiroCrmTenant.validate()) {
                     try {
-                        def options = [locale:RCU.getLocale(request)]
+                        def options = [locale: RCU.getLocale(request)]
                         def trialDays = grailsApplication.config.crm.tenant.trialDays
                         if (trialDays) {
                             options.expires = new java.sql.Date(DateUtils.endOfWeek(trialDays).time)
@@ -103,7 +103,7 @@ class ShiroCrmTenantController {
                         def features = params.list('features')
                         for (f in features) {
                             def appFeature = crmFeatureService.getApplicationFeature(f)
-                            if(appFeature && !appFeature.enabled) {
+                            if (appFeature && !appFeature.enabled) {
                                 crmFeatureService.enableFeature(f, id)
                             }
                         }
@@ -121,7 +121,7 @@ class ShiroCrmTenantController {
                 }
                 break
         }
-        return [shiroCrmUser: shiroCrmUser, shiroCrmTenant: shiroCrmTenant, features:[], allFeatures: crmFeatureService.applicationFeatures]
+        return [shiroCrmUser: shiroCrmUser, shiroCrmTenant: shiroCrmTenant, features: [], allFeatures: crmFeatureService.applicationFeatures]
     }
 
     def edit() {
@@ -139,22 +139,23 @@ class ShiroCrmTenantController {
         }
 
         def invitations = crmInvitationService ? crmInvitationService.getInvitationsFor(shiroCrmTenant, shiroCrmTenant.id) : []
+        def allFeatures = crmFeatureService.applicationFeatures
+        def features = crmFeatureService.getFeatures(shiroCrmTenant.id)
+        def existingFeatureNames = features*.name
+        def moreFeatures = allFeatures.findAll {
+            if (it.hidden || existingFeatureNames.contains(it.name)) {
+                return false
+            }
+            return true
+        }
+        def showCosts = shiroCrmTenant.getOption('agreement.costs')
+        def partner2 = shiroCrmTenant.getOption('agreement.partner2')
 
         switch (request.method) {
             case 'GET':
-                def allFeatures = crmFeatureService.applicationFeatures
-                def features = crmFeatureService.getFeatures(shiroCrmTenant.id)
-                def existingFeatureNames = features*.name
-                def moreFeatures = allFeatures.findAll {
-                    if (it.hidden || existingFeatureNames.contains(it.name)) {
-                        return false
-                    }
-                    return true
-                }
-                def showCosts = shiroCrmTenant.getOption('costs')
                 return [shiroCrmTenant: shiroCrmTenant, user: crmSecurityService.currentUser,
                         permissions: shiroCrmSecurityService.getTenantPermissions(shiroCrmTenant.id),
-                        showCosts: showCosts, invitationList: invitations, features: features, moreFeatures: moreFeatures]
+                        showCosts: showCosts, partner2: partner2, invitationList: invitations, features: features, moreFeatures: moreFeatures]
             case 'POST':
                 if (params.version) {
                     def version = params.version.toLong()
@@ -170,7 +171,9 @@ class ShiroCrmTenantController {
                 bindData(shiroCrmTenant, params, [include: TENANT_BIND_WHITELIST])
 
                 if (!shiroCrmTenant.save(flush: true)) {
-                    render view: 'edit', model: [shiroCrmTenant: shiroCrmTenant, user: crmSecurityService.currentUser]
+                    render view: 'edit', model: [shiroCrmTenant: shiroCrmTenant, user: crmSecurityService.currentUser,
+                        permissions: shiroCrmSecurityService.getTenantPermissions(shiroCrmTenant.id),
+                        showCosts: showCosts, partner2: partner2, invitationList: invitations, features: features, moreFeatures: moreFeatures]
                     return
                 }
 
@@ -180,9 +183,14 @@ class ShiroCrmTenantController {
                 }
 
                 if (params.boolean('showCosts')) {
-                    shiroCrmTenant.setOption('costs', true)
+                    shiroCrmTenant.setOption('agreement.costs', true)
                 } else {
-                    shiroCrmTenant.removeOption('costs')
+                    shiroCrmTenant.removeOption('agreement.costs')
+                }
+                if (params.boolean('partner2')) {
+                    shiroCrmTenant.setOption('agreement.partner2', true)
+                } else {
+                    shiroCrmTenant.removeOption('agreement.partner2')
                 }
 
                 flash.success = message(code: 'shiroCrmTenant.updated.message', args: [message(code: 'shiroCrmTenant.label', default: 'Account'), shiroCrmTenant.toString()])

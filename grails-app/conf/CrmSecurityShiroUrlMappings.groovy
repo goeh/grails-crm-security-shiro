@@ -16,7 +16,11 @@
 
 class CrmSecurityShiroUrlMappings {
 
-	static mappings = {
+    static mappings = {
+        name logout: "/auth/logout" {
+            controller = 'auth'
+            action = 'logout'
+        }
         name 'crm-account': "/account" {
             controller = 'shiroCrmTenant'
             action = 'index'

@@ -127,6 +127,13 @@ class AuthController {
     def unauthorized = {
         if (request.xhr || request.contentType?.equalsIgnoreCase("text/xml")) {
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED)
+        } else if (!shiroCrmSecurityService.isValidTenant(TenantUtils.tenant)) {
+            def defaultTenant = shiroCrmSecurityService.currentUser?.defaultTenant
+            if (!defaultTenant) {
+                defaultTenant = shiroCrmSecurityService.getTenants()?.find {it}?.id
+            }
+            TenantUtils.setTenant(defaultTenant)
+            request.session.tenant = defaultTenant
         }
     }
 }

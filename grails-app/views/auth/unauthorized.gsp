@@ -1,13 +1,20 @@
 <!DOCTYPE html>
 <html>
-<meta name="layout" content="main"/>
-<head><title>Unauthorized</title></head>
+<head>
+    <meta name="layout" content="blank"/>
+    <title><g:message code="default.unauthorized.title" default="Unauthorized"/></title>
+</head>
 
 <body>
 
-<h1>Security Alert!</h1>
+<header class="page-header">
+    <h1><g:message code="default.unauthorized.title" default="Unauthorized"/></h1>
+</header>
 
-<h2>You tried to access a page you do not have access to.</h2>
+<h2><g:message code="default.unauthorized.message"
+               default="You tried to access a page you do not have access to."/></h2>
+
+<tt:html name="unauthorized-main"/>
 
 </body>
 </html>
