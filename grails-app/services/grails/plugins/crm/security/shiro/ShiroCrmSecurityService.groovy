@@ -102,7 +102,7 @@ class ShiroCrmSecurityService implements CrmSecurityService {
 
         user.save(failOnError: true, flush: true)
         def userInfo = user.dao
-        event(for: "crm", topic: "userCreated", data: userInfo)
+        event(for: "crm", topic: "userCreated", data: userInfo + [ip:props.ip])
         return userInfo
     }
 

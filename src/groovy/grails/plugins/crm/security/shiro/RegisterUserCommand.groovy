@@ -33,6 +33,7 @@ class RegisterUserCommand implements Serializable {
     String country
     String campaign
     String captcha
+    String ip
 
     static constraints = {
         username(size: 3..80, maxSize: 80, nullable: false, blank: false, validator: {val, obj->
@@ -47,5 +48,6 @@ class RegisterUserCommand implements Serializable {
         telephone(maxSize:20, nullable:true)
         campaign(maxSize:80, nullable:true)
         captcha(maxSize:10, blank:false)
+        ip(maxSize: 80, nullable: true)
     }
 }

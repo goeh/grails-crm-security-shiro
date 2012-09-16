@@ -63,6 +63,9 @@ class CrmRegisterController {
     }
 
     def index(RegisterUserCommand cmd) {
+
+        cmd.ip = request.remoteAddr
+
         if (request.method == "POST") {
             if (!cmd.hasErrors()) {
                 if (simpleCaptchaService.validateCaptcha(params.captcha)) {
