@@ -15,6 +15,8 @@
 *  under the License.
 */
 
+import grails.plugins.crm.security.shiro.ShiroSecurityDelegate
+
 class CrmSecurityShiroGrailsPlugin {
     // Dependency group
     def groupId = "grails.crm"
@@ -45,43 +47,16 @@ This plugin leverage the shiro plugin to authenticate/authorize Grails CRM users
     def issueManagement = [system: "github", url: "https://github.com/goeh/grails-crm-security-shiro/issues"]
     def scm = [url: "https://github.com/goeh/grails-crm-security-shiro"]
 
-    def features = {
-        security {
-            description "Apache Shiro Security"
-            link controller: 'shiroCrmTenant'
-            enabled true
-            required true
-            hidden true
-            permissions {
-                guest "shiroCrmTenant:index,activate"
-                user "shiroCrmTenant:index,activate,create,edit"
-                admin "shiroCrmTenant:*"
-            }
-        }
-        register {
-            description "User Registration"
-            link controller: 'crmRegister'
-            enabled true
-            hidden true
-        }
-        password {
-            description "Reset Password"
-            link controller: 'resetPassword'
-            enabled true
-            hidden true
-        }
-    }
-
     def doWithSpring = {
-        springConfig.addAlias("crmSecurityService", "shiroCrmSecurityService")
-
-        credentialMatcher(org.apache.shiro.authc.credential.Sha512CredentialsMatcher) {
+        crmSecurityDelegate(ShiroSecurityDelegate) {bean->
+            bean.autowire = "byName"
+        }
+        credentialMatcher(org.apache.shiro.authc.credential.HashedCredentialsMatcher) {
+            hashAlgorithmName = "SHA-512"
             storedCredentialsHexEncoded = true
+            // TODO HashedCredentialsMatcher.html#setHashSalted(boolean) is deprecated!
             hashSalted = true
             hashIterations = 1000
-        }
-        resetPasswordDelegate(grails.plugins.crm.security.shiro.ResetPasswordDelegate) {bean ->
-            bean.autowire = "byName"
         }
     }
 

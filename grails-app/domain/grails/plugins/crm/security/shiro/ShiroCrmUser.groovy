@@ -16,82 +16,27 @@
  */
 package grails.plugins.crm.security.shiro
 
-import grails.plugins.crm.core.AuditEntity
-import grails.plugins.crm.core.UuidEntity
-import grails.plugins.crm.core.TenantUtils
-
 /**
  * This domain class represents a user account.
  *
  * @author Goran Ehrsson
  * @since 0.1
  */
-@AuditEntity
-@UuidEntity
 class ShiroCrmUser {
 
     String username
-    String name
-    String email
-    String company // Deprecated!
-    String address1
-    String address2
-    String address3
-    String postalCode
-    String city
-    String region
-    String countryCode
-    String currency
-    String timezone
-    String telephone
-    String mobile
-    String campaign
-    boolean enabled
     String passwordHash
     String passwordSalt
-    int loginFailures
-    Long defaultTenant
-
-    static hasMany = [roles: ShiroCrmUserRole, permissions: ShiroCrmUserPermission, accounts: ShiroCrmTenant]
 
     static constraints = {
         username(size: 3..80, maxSize: 80, nullable: false, blank: false, unique: true)
-        name(size: 3..80, maxSize: 80, nullable: false, blank: false)
-        email(maxSize: 80, blank: false, email: true)
-        company(maxSize: 80, nullable: true) // Deprecated!
-        address1(maxSize: 80, nullable: true)
-        address2(maxSize: 80, nullable: true)
-        address3(maxSize: 80, nullable: true)
-        postalCode(size: 2..20, maxSize: 20, nullable: true)
-        city(size: 2..40, maxSize: 40, nullable: true)
-        region(maxSize: 40, nullable: true)
-        countryCode(size: 2..3, maxSize: 3, nullable: true)
-        currency(maxSize: 4, nullable: true)
-        timezone(maxSize: 40, nullable: true)
-        telephone(size: 4..20, maxSize: 20, nullable: true)
-        mobile(size: 4..20, maxSize: 20, nullable: true)
-        campaign(size: 2..20, maxSize: 20, nullable: true)
         passwordHash(size: 25..255, blank: false)
         passwordSalt(maxSize: 255, blank: false)
-        defaultTenant(nullable: true)
     }
 
     static mapping = {
-        table 'crm_user'
-        sort 'username'
         cache 'read-write'
-        accounts sort: 'name'
-        roles joinTable: [name: 'crm_user_role', key: 'user_id'], cascade: 'all-delete-orphan'
-        permissions cascade: 'all-delete-orphan'
     }
-
-    static transients = ['dao']
-
-    static searchable = {
-        only = ['username', 'name']
-    }
-
-    static List BIND_WHITELIST = ['username', 'name', 'email', 'company', 'address1', 'address2', 'address3', 'postalCode', 'city', 'region', 'countryCode', 'currency', 'timezone', 'telephone', 'mobile', 'campaign', 'enabled', 'loginFailures', 'defaultTenant']
 
     /**
      * Returns the username property.
@@ -101,56 +46,18 @@ class ShiroCrmUser {
         username
     }
 
-    /**
-     * Clients should use this method to get user properties instead of accessing the domain instance directly.
-     * The following properties are returned as a Map: [String guid, String username, String name, String email, String address1, String address2,
-     * String postalCode, String city, String countryCode, String telephone, boolean enabled, boolean defaultTenant]
-     * @return a data access object (Map) representing the domain instance.
-     */
-    Map<String, Object> getDao() {
-        def tenant = TenantUtils.tenant
-        def allPerm = []
-        if (permissions) {
-            allPerm.addAll(permissions.findAll {it.tenantId == tenant}.collect {it.toString()})
-        }
-        def allRoles = []
-        for (role in roles.findAll {it.role.tenantId == tenant}) {
-            allRoles << role.toString()
-            def p = role.role.permissions
-            if (p) {
-                allPerm.addAll(p)
-            }
-        }
-        def map = properties.subMap(['id', 'guid', 'username', 'name', 'email', 'company', 'address1', 'address2', 'address3', 'postalCode', 'city', 'region', 'countryCode', 'currency', 'telephone', 'mobile', 'enabled', 'campaign', 'defaultTenant'])
-        def tz = timezone ? TimeZone.getTimeZone(timezone) : TimeZone.getDefault()
-        map.timezone = tz
-        map.roles = allRoles
-        map.permissions = allPerm
-        return map
-    }
-
     boolean equals(o) {
-        if (this.is(o)) return true;
-        if (getClass() != o.class) return false;
+        if (this.is(o)) return true
+        if (getClass() != o.class) return false
 
-        ShiroCrmUser that = (ShiroCrmUser) o;
+        ShiroCrmUser that = (ShiroCrmUser) o
 
-        if (email != that.email) return false;
-        if (name != that.name) return false;
-        if (passwordHash != that.passwordHash) return false;
-        if (passwordSalt != that.passwordSalt) return false;
-        if (username != that.username) return false;
+        if (username != that.username) return false
 
-        return true;
+        return true
     }
 
     int hashCode() {
-        int result;
-        result = (username != null ? username.hashCode() : 0);
-        result = 31 * result + (name != null ? name.hashCode() : 0);
-        result = 31 * result + (email != null ? email.hashCode() : 0);
-        result = 31 * result + (passwordHash != null ? passwordHash.hashCode() : 0);
-        result = 31 * result + (passwordSalt != null ? passwordSalt.hashCode() : 0);
-        return result;
+        return (username != null ? username.hashCode() : 0)
     }
 }

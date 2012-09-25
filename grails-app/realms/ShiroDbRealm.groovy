@@ -15,6 +15,8 @@
  *  under the License.
  */
 
+
+import grails.plugins.crm.security.shiro.ShiroCrmUser
 import org.apache.shiro.authc.AccountException
 import org.apache.shiro.authc.IncorrectCredentialsException
 import org.apache.shiro.authc.UnknownAccountException
@@ -22,12 +24,11 @@ import org.apache.shiro.authc.SimpleAccount
 import org.apache.shiro.util.SimpleByteSource
 
 import grails.plugins.crm.core.TenantUtils
-import grails.plugins.crm.security.shiro.ShiroCrmUserRole
-import grails.plugins.crm.security.shiro.ShiroCrmUserPermission
-import grails.plugins.crm.security.shiro.ShiroCrmUser
+import grails.plugins.crm.security.CrmUser
+import grails.plugins.crm.security.CrmUserRole
+import grails.plugins.crm.security.CrmUserPermission
 
 import org.springframework.web.context.request.RequestContextHolder
-import org.springframework.web.context.request.ServletRequestAttributes
 import javax.servlet.http.HttpSession
 
 class ShiroDbRealm {
@@ -35,7 +36,7 @@ class ShiroDbRealm {
 
     def credentialMatcher
     def shiroPermissionResolver
-    def shiroCrmSecurityService
+    def crmSecurityService
 
     boolean supports() {
         return true
@@ -53,24 +54,27 @@ class ShiroDbRealm {
         // Get the user with the given username. If the user is not
         // found, then they don't have an account and we throw an
         // exception.
-        def user = ShiroCrmUser.findByUsername(username)
+        def user = CrmUser.findByUsername(username)
         if (!user) {
             throw new UnknownAccountException("No DB account found for user [${username}]")
         }
         if (!user.enabled) {
             throw new UnknownAccountException("Account is disabled [${username}]")
         }
-        log.info "Found user '${user.username}' in DB"
-
+        log.info "Found CrmUser [${user.username}] in DB"
+        def shiroCrmUser = ShiroCrmUser.findByUsername(username)
+        if (!shiroCrmUser) {
+            throw new UnknownAccountException("No ShiroCrmUser found with username [${username}]")
+        }
         // Now check the user's password against the hashed value stored
         // in the database.
         def salt
-        if (user.passwordSalt) {
-            salt = user.passwordSalt.decodeBase64()
+        if (shiroCrmUser.passwordSalt) {
+            salt = shiroCrmUser.passwordSalt.decodeBase64()
         } else {
             salt = username.bytes
         }
-        def account = new SimpleAccount(username, user.passwordHash, new SimpleByteSource(salt), "ShiroDbRealm")
+        def account = new SimpleAccount(username, shiroCrmUser.passwordHash, new SimpleByteSource(salt), "ShiroDbRealm")
         if (!credentialMatcher.doCredentialsMatch(authToken, account)) {
             user.loginFailures = user.loginFailures + 1
             if (user.loginFailures > 9) {
@@ -89,26 +93,26 @@ class ShiroDbRealm {
             log.info "Login successful, resetting login failures for $user"
             user.loginFailures = 0
         }
-        if (!user.passwordSalt) {
+        if (!shiroCrmUser.passwordSalt) {
             log.info "Upgrading security for user ${user.username}.."
-            salt = shiroCrmSecurityService.generateSalt()
-            user.passwordHash = shiroCrmSecurityService.hashPassword(new String(authToken.password), salt)
-            user.passwordSalt = salt.encodeBase64().toString()
+            salt = crmSecurityService.generateSalt()
+            shiroCrmUser.passwordHash = crmSecurityService.hashPassword(new String(authToken.password), salt)
+            shiroCrmUser.passwordSalt = salt.encodeBase64().toString()
         }
 
         try {
             setDefaultTenant(username)
-        } catch(Exception e) {
+        } catch (Exception e) {
             log.error("Failed to set default tenant for user [$username]", e)
         }
         return account
     }
 
     void setDefaultTenant(String username) {
-        def user = shiroCrmSecurityService.getUser(username)
+        def user = crmSecurityService.getUser(username)
         def tenant = user?.defaultTenant
         if (tenant == null) {
-            def availableTenants = shiroCrmSecurityService.getTenants(username)
+            def availableTenants = crmSecurityService.getTenants(username)
             if (!availableTenants.isEmpty()) {
                 tenant = availableTenants.get(0).id
             }
@@ -116,7 +120,7 @@ class ShiroDbRealm {
         if (tenant != null) {
             TenantUtils.tenant = tenant
             def session = httpSession
-            if(session) {
+            if (session) {
                 session.tenant = tenant
             }
         }
@@ -126,7 +130,7 @@ class ShiroDbRealm {
         def s
         try {
             s = RequestContextHolder.currentRequestAttributes().getSession(false)
-        } catch(Exception e) {
+        } catch (Exception e) {
             log.error(e)
         }
         return s
@@ -134,7 +138,7 @@ class ShiroDbRealm {
 
     def hasRole(principal, roleName) {
         def tenant = TenantUtils.getTenant()
-        def roles = ShiroCrmUserRole.withCriteria {
+        def roles = CrmUserRole.withCriteria {
             projections {
                 property("id")
             }
@@ -154,7 +158,7 @@ class ShiroDbRealm {
 
     def hasAllRoles(principal, roles) {
         def tenant = TenantUtils.getTenant()
-        def result = ShiroCrmUserRole.withCriteria {
+        def result = CrmUserRole.withCriteria {
             projections {
                 property("id")
             }
@@ -173,8 +177,8 @@ class ShiroDbRealm {
     }
 
     private boolean implies(Object requiredPermission, String permString) {
-        for(p in shiroCrmSecurityService.getPermissionAlias(permString)) {
-            if(implies(requiredPermission, p)) {
+        for (p in crmSecurityService.getPermissionAlias(permString)) {
+            if (implies(requiredPermission, p)) {
                 return true
             }
         }
@@ -187,7 +191,7 @@ class ShiroDbRealm {
     def isPermitted(userName, requiredPermission) {
         def tenant = TenantUtils.getTenant()
         // Does the user have the given permission directly associated with himself?
-        def permissions = ShiroCrmUserPermission.withCriteria {
+        def permissions = CrmUserPermission.withCriteria {
             projections {
                 property('permissionsString')
             }
@@ -210,7 +214,7 @@ class ShiroDbRealm {
         // If not, does he gain it through a role?
         // Get the permissions from the roles that the user does have.
         //
-        def results = ShiroCrmUserRole.withCriteria {
+        def results = CrmUserRole.withCriteria {
             user {
                 eq("username", userName)
                 eq("enabled", true)

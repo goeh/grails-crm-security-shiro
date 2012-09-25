@@ -21,17 +21,5 @@ class CrmSecurityShiroUrlMappings {
             controller = 'auth'
             action = 'logout'
         }
-        name 'crm-account': "/account" {
-            controller = 'shiroCrmTenant'
-            action = 'index'
-        }
-        name 'crm-account-create': "/account/create" {
-            controller = 'shiroCrmTenant'
-            action = 'create'
-        }
-        name 'crm-account-activate': "/account/activate/$id" {
-            controller = 'shiroCrmTenant'
-            action = 'activate'
-        }
     }
 }

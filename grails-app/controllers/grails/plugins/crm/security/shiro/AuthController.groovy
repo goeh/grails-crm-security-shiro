@@ -27,7 +27,7 @@ import javax.servlet.http.HttpServletResponse
 class AuthController {
 
     def shiroSecurityManager
-    def shiroCrmSecurityService
+    def crmSecurityService
     def userSettingsService
 
     def index = { redirect(action: "login", params: params) }
@@ -64,7 +64,7 @@ class AuthController {
             println "Tenant set to ${TenantUtils.tenant} for ${params.username} at login"
 
             // We don't want to send the password to event handlers so we clone params and remove it.
-            def currentUser = shiroCrmSecurityService.getUser(params.username)
+            def currentUser = crmSecurityService.getUser(params.username)
             def eventParams = currentUser?.dao ?: [:]
             eventParams.putAll(params)
             eventParams.remove('password')
@@ -110,7 +110,7 @@ class AuthController {
     }
 
     def logout = {
-        def username = shiroCrmSecurityService.currentUser?.username
+        def username = SecurityUtils.subject?.principal?.toString()
 
         // Log the user out of the application.
         SecurityUtils.subject?.logout()
@@ -127,10 +127,10 @@ class AuthController {
     def unauthorized = {
         if (request.xhr || request.contentType?.equalsIgnoreCase("text/xml")) {
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED)
-        } else if (!shiroCrmSecurityService.isValidTenant(TenantUtils.tenant)) {
-            def defaultTenant = shiroCrmSecurityService.currentUser?.defaultTenant
+        } else if (!crmSecurityService.isValidTenant(TenantUtils.tenant)) {
+            def defaultTenant = crmSecurityService.currentUser?.defaultTenant
             if (!defaultTenant) {
-                defaultTenant = shiroCrmSecurityService.getTenants()?.find {it}?.id
+                defaultTenant = crmSecurityService.getTenants()?.find {it}?.id
             }
             TenantUtils.setTenant(defaultTenant)
             request.session.tenant = defaultTenant

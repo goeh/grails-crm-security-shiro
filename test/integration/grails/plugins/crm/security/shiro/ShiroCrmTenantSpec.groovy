@@ -1,5 +1,8 @@
 package grails.plugins.crm.security.shiro
 
+import grails.plugins.crm.security.CrmTenant
+import grails.plugins.crm.security.CrmUser
+
 /**
  * Test ShiroCrmTenant and ShiroCrmTenantOption.
  */
@@ -10,8 +13,8 @@ class ShiroCrmTenantSpec extends grails.plugin.spock.IntegrationSpec {
     def "set and get option"() {
         given:
         def userDAO = crmSecurityService.createUser(username: "inttest", name: "Integration Test", email: "test@test.com", password: "secret")
-        def user = ShiroCrmUser.load(userDAO.id)
-        def t = new ShiroCrmTenant(name: "test", features: ["test", "integration"], user: user).save(failOnError: true, flush: true)
+        def user = CrmUser.load(userDAO.id)
+        def t = new CrmTenant(name: "test", features: ["test", "integration"], user: user).save(failOnError: true, flush: true)
 
         when:
         t.setOption("foo", 42)
