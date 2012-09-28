@@ -62,8 +62,13 @@ class ShiroDbRealm {
             throw new UnknownAccountException("Account is disabled [${username}]")
         }
         log.info "Found CrmUser [${user.username}] in DB"
+
+        // DB queries could be case-insensitive (MySQL is by default), so we need to get the real username from DB.
+        username = user.username
+
         def shiroCrmUser = ShiroCrmUser.findByUsername(username)
         if (!shiroCrmUser) {
+            log.error "A CrmUser was found with username [${username}] but no matching ShiroCrmUser!"
             throw new UnknownAccountException("No ShiroCrmUser found with username [${username}]")
         }
         // Now check the user's password against the hashed value stored
