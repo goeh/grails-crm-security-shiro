@@ -24,14 +24,18 @@ package grails.plugins.crm.security.shiro
  */
 class ShiroCrmUser {
 
+    public static final int AUTH_GRAILS_CRM_1 = 0
+
     String username
     String passwordHash
     String passwordSalt
+    Integer authVersion = AUTH_GRAILS_CRM_1
 
     static constraints = {
         username(size: 3..80, maxSize: 80, nullable: false, blank: false, unique: true)
         passwordHash(size: 25..255, blank: false)
         passwordSalt(maxSize: 255, blank: false)
+        authVersion()
     }
 
     static mapping = {
