@@ -27,7 +27,7 @@
                                                                default="Username"/></label>
 
         <div class="controls">
-            <g:textField name="username" value="${username}"/>
+            <g:textField name="username" value="${username}" autocapitalize="off"/>
         </div>
     </div>
 
