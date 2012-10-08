@@ -7,9 +7,6 @@ class SecurityFilters {
 
     def dependsOn = [CrmTenantFilters]
 
-    def publicControllers = []
-    def authenticatedControllers = ["welcome", "account", "settings"]
-
     def onNotAuthenticated(subject, filter) {
         // Check if the request is an Ajax one.
         if (filter.request.xhr || filter.request.contentType?.equalsIgnoreCase("text/xml")) {
@@ -27,24 +24,15 @@ class SecurityFilters {
                 // Ignore direct views (e.g. the default main index page).
                 if (!controllerName) return true
 
-                // Exclude the "public" controller.
-                if (publicControllers.contains(controllerName)) return true
-
                 // Exclude public controllers in Config.groovy
-                def configControllers = grailsApplication.config.crm.security.controllers.public ?: []
-                if (configControllers?.contains(controllerName)) {
-                    return true
-                }
-
-                if(authenticatedControllers.contains(controllerName) && SecurityUtils.subject?.authenticated) {
-                    // TODO This is a hack. I spent an hour trying to add a separate pattern/filter
-                    // for 'welcome' controller but I could not get is to pass permission check.
+                def configControllers = grailsApplication.config.crm.security.controllers.public
+                if (configControllers?.find {match(it, controllerName, actionName)}) {
                     return true
                 }
 
                 // Check protected controllers in Config.groovy
-                configControllers = grailsApplication.config.crm.security.controllers.protected ?: []
-                if(configControllers?.contains(controllerName) && SecurityUtils.subject?.authenticated) {
+                configControllers = grailsApplication.config.crm.security.controllers.protected
+                if (configControllers?.find {match(it, controllerName, actionName)} && SecurityUtils.subject?.authenticated) {
                     return true
                 }
 
@@ -62,5 +50,19 @@ class SecurityFilters {
                 }
             }
         }
+    }
+
+    private boolean match(String ctrl, String controllerName, String actionName) {
+        def (c, a) = ctrl.split(':').toList()
+        if (c == controllerName) {
+            if (a) {
+                if (a.split(',').contains(actionName)) {
+                    return true
+                }
+            } else {
+                return true
+            }
+        }
+        return false
     }
 }
