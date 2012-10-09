@@ -17,6 +17,7 @@
 
 
 import grails.plugins.crm.security.shiro.ShiroCrmUser
+import org.apache.shiro.SecurityUtils
 import org.apache.shiro.authc.AccountException
 import org.apache.shiro.authc.IncorrectCredentialsException
 import org.apache.shiro.authc.UnknownAccountException
@@ -27,9 +28,6 @@ import grails.plugins.crm.core.TenantUtils
 import grails.plugins.crm.security.CrmUser
 import grails.plugins.crm.security.CrmUserRole
 import grails.plugins.crm.security.CrmUserPermission
-
-import org.springframework.web.context.request.RequestContextHolder
-import javax.servlet.http.HttpSession
 
 class ShiroDbRealm {
     static authTokenClass = org.apache.shiro.authc.UsernamePasswordToken
@@ -124,21 +122,11 @@ class ShiroDbRealm {
         }
         if (tenant != null) {
             TenantUtils.tenant = tenant
-            def session = httpSession
+            def session = SecurityUtils.getSubject()?.getSession(true)
             if (session) {
-                session.tenant = tenant
+                session.setAttribute("tenant", tenant)
             }
         }
-    }
-
-    HttpSession getHttpSession() {
-        def s
-        try {
-            s = RequestContextHolder.currentRequestAttributes().getSession(false)
-        } catch (Exception e) {
-            log.error(e)
-        }
-        return s
     }
 
     def hasRole(principal, roleName) {

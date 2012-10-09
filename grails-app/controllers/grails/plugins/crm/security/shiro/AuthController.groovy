@@ -19,16 +19,13 @@ package grails.plugins.crm.security.shiro
 import org.apache.shiro.SecurityUtils
 import org.apache.shiro.authc.AuthenticationException
 import org.apache.shiro.authc.UsernamePasswordToken
-import org.apache.shiro.web.util.SavedRequest
 import org.apache.shiro.web.util.WebUtils
 import grails.plugins.crm.core.TenantUtils
 import javax.servlet.http.HttpServletResponse
 
 class AuthController {
 
-    def shiroSecurityManager
     def crmSecurityService
-    def userSettingsService
 
     def index = { redirect(action: "login", params: params) }
 
@@ -60,8 +57,7 @@ class AuthController {
             // will be thrown if the username is unrecognised or the
             // password is incorrect.
             SecurityUtils.subject.login(authToken)
-
-            println "Tenant set to ${TenantUtils.tenant} for ${params.username} at login"
+            log.debug "Tenant set to ${TenantUtils.tenant} for ${params.username} at login"
 
             // We don't want to send the password to event handlers so we clone params and remove it.
             def currentUser = crmSecurityService.getUser(params.username)
@@ -71,11 +67,11 @@ class AuthController {
             eventParams.targetUri = targetUri
 
             def future = event(for: "crm", topic: "login", data: eventParams).waitFor(10000L)
-            println "rval from login event: ${future.value}"
+            log.debug "rval from login event: ${future.value}"
             // An onLogin event handler may have changed targetUri so we must fetch it again.
             targetUri = eventParams.targetUri
 
-            println "Redirecting ${params.username} to '${targetUri}'."
+            log.debug "Redirecting ${params.username} to '${targetUri}'."
             redirect(uri: targetUri ?: "/")
         }
         catch (AuthenticationException ex) {
