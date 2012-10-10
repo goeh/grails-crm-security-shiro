@@ -22,6 +22,7 @@ import org.apache.shiro.authc.AccountException
 import org.apache.shiro.authc.IncorrectCredentialsException
 import org.apache.shiro.authc.UnknownAccountException
 import org.apache.shiro.authc.SimpleAccount
+import org.apache.shiro.crypto.hash.Sha256Hash
 import org.apache.shiro.util.SimpleByteSource
 
 import grails.plugins.crm.core.TenantUtils
@@ -79,28 +80,31 @@ class ShiroDbRealm {
         }
         def account = new SimpleAccount(username, shiroCrmUser.passwordHash, new SimpleByteSource(salt), "ShiroDbRealm")
         if (!credentialMatcher.doCredentialsMatch(authToken, account)) {
-            user.loginFailures = user.loginFailures + 1
-            if (user.loginFailures > 9) {
-                log.info "To many login failures, disabling account $user"
-                user.enabled = false
+            // If that didn't work, try with the weaker password hash that was used in older versions.
+            // If that password match, upgrade the hash to stronger encryption.
+            def password = new String(authToken.password)
+            def md5hash = password.encodeAsMD5()
+            def sha256hash = new Sha256Hash(password, user.email).toHex()
+            if (sha256hash == shiroCrmUser.passwordHash || md5hash == shiroCrmUser.passwordHash) {
+                log.warn "Upgrading security for user ${user.username}..."
+                crmSecurityService.updateUser(user.username, [password: password])
+            } else {
+                user.loginFailures = user.loginFailures + 1
+                if (user.loginFailures > 9) {
+                    log.warn "To many login failures, disabling account $user"
+                    user.enabled = false
+                }
+                user.save(flush: true)
+                if (!user.enabled) {
+                    throw new UnknownAccountException("Account is disabled [${username}]")
+                }
+                log.info "Invalid password (DB realm)"
+                throw new IncorrectCredentialsException("Invalid password for user '${username}'")
             }
-            user.save(flush: true)
-            if (!user.enabled) {
-                throw new UnknownAccountException("Account is disabled [${username}]")
-            }
-
-            log.info "Invalid password (DB realm)"
-            throw new IncorrectCredentialsException("Invalid password for user '${username}'")
         }
         if (user.loginFailures > 0) {
             log.info "Login successful, resetting login failures for $user"
             user.loginFailures = 0
-        }
-        if (!shiroCrmUser.passwordSalt) {
-            log.info "Upgrading security for user ${user.username}.."
-            salt = crmSecurityService.generateSalt()
-            shiroCrmUser.passwordHash = crmSecurityService.hashPassword(new String(authToken.password), salt)
-            shiroCrmUser.passwordSalt = salt.encodeBase64().toString()
         }
 
         try {
