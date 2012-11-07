@@ -27,119 +27,6 @@ class ShiroCrmSecurityServiceSpec extends grails.plugin.spock.IntegrationSpec {
 
     def crmSecurityService
     def grailsApplication
-    def crmFeatureService
-
-    def "create user"() {
-        when:
-        def user = crmSecurityService.createUser([username: "test1", name: "Test User", email: "test@test.com", password: "test123", enabled: true])
-        then:
-        user != null
-        user instanceof Map
-    }
-
-    def "duplicate username is not allowed"() {
-        when:
-        def user = crmSecurityService.createUser([username: "test2", name: "Test User", email: "test@test.com", password: "test123", enabled: true])
-        then:
-        user != null
-
-        when:
-        user = crmSecurityService.createUser([username: "test2", name: "Test User Duplicate", email: "info@technipelago.se", password: "test789", enabled: true])
-        then:
-        thrown(CrmException)
-    }
-
-    def "get user information"() {
-        when:
-        crmSecurityService.createUser([username: "test3", name: "Test User", email: "test@test.com", password: "test123", enabled: true])
-        def info = crmSecurityService.getUserInfo("test3")
-
-        then:
-        info instanceof Map
-        info.username == "test3"
-        info.name == "Test User"
-        info.email == "test@test.com"
-        info.enabled
-    }
-
-    def "get user instance"() {
-        when:
-        crmSecurityService.createUser([username: "test4", name: "Test User", email: "test@test.com", password: "test123", enabled: true])
-        def user = crmSecurityService.getUser("test4")
-
-        then:
-        user instanceof CrmUser
-        user.username == "test4"
-        user.name == "Test User"
-        user.email == "test@test.com"
-        user.enabled
-    }
-
-    def "create tenant"() {
-        given:
-        def result
-        def features
-        crmSecurityService.createUser([username: "test5", name: "Test User", email: "test@test.com", password: "test123", enabled: true])
-
-        when:
-        crmSecurityService.runAs("test5") {
-            result = crmSecurityService.getTenants()
-        }
-        then:
-        result.isEmpty()
-
-        when:
-        crmSecurityService.runAs("test5") {
-            def t1 = crmSecurityService.createTenant("My First Tenant")
-            def t2 = crmSecurityService.createTenant("My Second Tenant")
-            result = crmSecurityService.getTenants()
-            features = crmFeatureService.getFeatures(t1.id)
-        }
-        then:
-        result.size() == 2
-        features.find {it.name == 'security'}
-    }
-
-    def "update tenant"() {
-        def tenant
-
-        given:
-        crmSecurityService.createUser([username: "test6", name: "Test User", email: "test@test.com", password: "test123", enabled: true])
-
-        when:
-        crmSecurityService.runAs("test6") {
-            tenant = crmSecurityService.createTenant("My Tenant")
-        }
-        then:
-        crmSecurityService.getTenantInfo(tenant.id)?.name == "My Tenant"
-
-        when:
-        crmSecurityService.updateTenant(tenant.id, [name: "Our Tenant"])
-
-        then:
-        crmSecurityService.getTenantInfo(tenant.id)?.name == "Our Tenant"
-    }
-
-    def "set tenant options"() {
-        def tenant
-
-        given:
-        crmSecurityService.createUser([username: "test7", name: "Test User", email: "test@test.com", password: "test123", enabled: true])
-
-        when:
-        crmSecurityService.runAs("test7") {
-            tenant = crmSecurityService.createTenant("My Tenant")
-        }
-        then:
-        tenant.options.foo == null
-
-        when:
-        tenant = crmSecurityService.updateTenant(tenant.id, [options: [foo: 42]])
-
-        then:
-        tenant.options.foo == 42
-        crmSecurityService.getTenantInfo(tenant.id).options.foo == 42
-    }
 
     def "runAs changes current user"() {
         def result
@@ -222,7 +109,8 @@ class ShiroCrmSecurityServiceSpec extends grails.plugin.spock.IntegrationSpec {
 
         when:
         crmSecurityService.runAs("test13") {
-            tenant = crmSecurityService.createTenant("Test Tenant")
+            def a = crmSecurityService.createAccount()
+            tenant = crmSecurityService.createTenant(a, "Test Tenant")
         }
         then:
         tenant != null
@@ -234,7 +122,7 @@ class ShiroCrmSecurityServiceSpec extends grails.plugin.spock.IntegrationSpec {
             }
         }
         then:
-        thrown(org.apache.shiro.authz.UnauthorizedException)
+        thrown(org.apache.shiro.subject.ExecutionException)
 
         when:
         TenantUtils.withTenant(tenant.id) {
@@ -270,7 +158,8 @@ class ShiroCrmSecurityServiceSpec extends grails.plugin.spock.IntegrationSpec {
 
         when:
         crmSecurityService.runAs("test14") {
-            tenant = crmSecurityService.createTenant("Test Tenant")
+            def a = crmSecurityService.createAccount()
+            tenant = crmSecurityService.createTenant(a, "Test Tenant")
             TenantUtils.withTenant(tenant.id) {
                 crmSecurityService.addPermissionToUser("test", "test14")
             }
@@ -309,7 +198,8 @@ class ShiroCrmSecurityServiceSpec extends grails.plugin.spock.IntegrationSpec {
 
         when:
         crmSecurityService.runAs("test15") {
-            tenant = crmSecurityService.createTenant("Test Tenant")
+            def a = crmSecurityService.createAccount()
+            tenant = crmSecurityService.createTenant(a, "Test Tenant")
             TenantUtils.withTenant(tenant.id) {
                 crmSecurityService.createRole("tester", ["foo", "bar"])
                 crmSecurityService.addUserRole("test15", "tester")
@@ -348,21 +238,21 @@ class ShiroCrmSecurityServiceSpec extends grails.plugin.spock.IntegrationSpec {
 
         given:
         def result = []
-        def locale = Locale.default
         def swedish = new Locale("sv", "SE")
         def spanish = new Locale("es", "ES")
         crmSecurityService.createUser([username: "test16", name: "Test User", email: "test@test.com", password: "test123", enabled: true])
 
         when:
         crmSecurityService.runAs("test16") {
-            result << crmSecurityService.createTenant("Default")
-            result << crmSecurityService.createTenant("Svenska", [locale: swedish])
-            result << crmSecurityService.createTenant("Español", [locale: spanish])
+            def a = crmSecurityService.createAccount()
+            result << crmSecurityService.createTenant(a, "Default")
+            result << crmSecurityService.createTenant(a, "Svenska", [locale: swedish])
+            result << crmSecurityService.createTenant(a, "Español", [locale: spanish])
         }
         then:
-        result[0].locale == locale
-        result[1].locale == swedish
-        result[2].locale == spanish
+        result[0].locale == null
+        result[1].locale == swedish.toString()
+        result[2].locale == spanish.toString()
     }
 
     def "test default permissions"() {
@@ -376,7 +266,8 @@ class ShiroCrmSecurityServiceSpec extends grails.plugin.spock.IntegrationSpec {
 
         when:
         crmSecurityService.runAs("test17") {
-            tenant = crmSecurityService.createTenant("Default")
+            def a = crmSecurityService.createAccount()
+            tenant = crmSecurityService.createTenant(a, "Default")
         }
 
         then:

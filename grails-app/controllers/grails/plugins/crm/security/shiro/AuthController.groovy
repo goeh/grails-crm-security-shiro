@@ -64,6 +64,7 @@ class AuthController {
             def eventParams = currentUser?.dao ?: [:]
             eventParams.putAll(params)
             eventParams.remove('password')
+            eventParams.tenant = TenantUtils.tenant
             eventParams.targetUri = targetUri
 
             def future = event(for: "crm", topic: "login", data: eventParams).waitFor(10000L)

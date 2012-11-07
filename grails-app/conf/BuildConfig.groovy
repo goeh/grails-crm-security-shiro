@@ -12,12 +12,12 @@ grails.project.dependency.resolution = {
         // uncomment to disable ehcache
         // excludes 'ehcache'
     }
-    log "warn" // log level of Ivy resolver, either 'error', 'warn', 'info', 'debug' or 'verbose'
+    log "warn"
     repositories {
+        grailsHome()
         grailsCentral()
-        //mavenCentral()
         mavenRepo "http://labs.technipelago.se/repo/crm-releases-local/"
-        mavenRepo "http://labs.technipelago.se/repo/plugins-releases-local/"
+        //mavenRepo "http://labs.technipelago.se/repo/plugins-releases-local/"
     }
     dependencies {
     }
@@ -29,9 +29,8 @@ grails.project.dependency.resolution = {
         }
         runtime ":hibernate:$grailsVersion"
 
-        test(":spock:0.6") { export = false }
-        test(":codenarc:latest.integration") { export = false }
-
+        test(":spock:0.7") { export = false }
+        test(":codenarc:0.17") { export = false }
         compile(":platform-core:1.0.M6") { excludes 'resources' }
         compile ':shiro:1.1.4'
 

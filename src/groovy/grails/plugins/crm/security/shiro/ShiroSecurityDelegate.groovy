@@ -25,6 +25,8 @@ import org.apache.shiro.subject.Subject
 
 import grails.plugins.crm.core.CrmSecurityDelegate
 
+import java.util.concurrent.Callable
+
 /**
  * Apache Shiro security delegate.
  *
@@ -64,7 +66,7 @@ class ShiroSecurityDelegate implements CrmSecurityDelegate {
         def bootstrapSecurityManager = new DefaultSecurityManager(realm)
         def principals = new SimplePrincipalCollection(username, realm.name)
         def subject = new Subject.Builder(bootstrapSecurityManager).principals(principals).buildSubject()
-        subject.execute(closure)
+        subject.execute(closure as Callable)
     }
 
     void createUser(String username, String password) {

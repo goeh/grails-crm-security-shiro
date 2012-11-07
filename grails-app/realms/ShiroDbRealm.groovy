@@ -90,12 +90,9 @@ class ShiroDbRealm {
                 crmSecurityService.updateUser(user.username, [password: password])
             } else {
                 user.loginFailures = user.loginFailures + 1
-                if (user.loginFailures > 9) {
-                    log.warn "To many login failures, disabling account $user"
-                    user.enabled = false
-                }
                 user.save(flush: true)
                 if (!user.enabled) {
+                    log.warn "To many login failures, account [$user] is disabled"
                     throw new UnknownAccountException("Account is disabled [${username}]")
                 }
                 log.info "Invalid password (DB realm)"
@@ -141,7 +138,7 @@ class ShiroDbRealm {
             }
             user {
                 eq("username", principal)
-                eq("enabled", true)
+                eq("status", CrmUser.STATUS_ACTIVE)
             }
             role {
                 eq("name", roleName)
@@ -161,7 +158,7 @@ class ShiroDbRealm {
             }
             user {
                 eq("username", principal)
-                eq("enabled", true)
+                eq("status", CrmUser.STATUS_ACTIVE)
             }
             role {
                 inList("name", roles)
@@ -194,7 +191,7 @@ class ShiroDbRealm {
             }
             user {
                 eq("username", userName)
-                eq("enabled", true)
+                eq("status", CrmUser.STATUS_ACTIVE)
             }
             eq('tenantId', tenant)
             cache true
@@ -214,7 +211,7 @@ class ShiroDbRealm {
         def results = CrmUserRole.withCriteria {
             user {
                 eq("username", userName)
-                eq("enabled", true)
+                eq("status", CrmUser.STATUS_ACTIVE)
             }
             role {
                 isNotEmpty("permissions")
