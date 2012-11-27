@@ -25,6 +25,7 @@ import javax.servlet.http.HttpServletResponse
 
 class AuthController {
 
+    def grailsApplication
     def crmSecurityService
 
     def index = { redirect(action: "login", params: params) }
@@ -58,22 +59,11 @@ class AuthController {
             // password is incorrect.
             SecurityUtils.subject.login(authToken)
             log.debug "Tenant set to ${TenantUtils.tenant} for ${params.username} at login"
-
-            // We don't want to send the password to event handlers so we clone params and remove it.
-            def currentUser = crmSecurityService.getUser(params.username)
-            def eventParams = currentUser?.dao ?: [:]
-            eventParams.putAll(params)
-            eventParams.remove('password')
-            eventParams.tenant = TenantUtils.tenant
-            eventParams.targetUri = targetUri
-
-            def future = event(for: "crm", topic: "login", data: eventParams).waitFor(10000L)
-            log.debug "rval from login event: ${future.value}"
-            // An onLogin event handler may have changed targetUri so we must fetch it again.
-            targetUri = eventParams.targetUri
-
-            log.debug "Redirecting ${params.username} to '${targetUri}'."
-            redirect(uri: targetUri ?: "/")
+            if(! targetUri) {
+                targetUri = grailsApplication.config.crm.login.targetUri ?: '/'
+            }
+            log.debug "Redirecting ${params.username} to $targetUri"
+            redirect(uri: targetUri)
         }
         catch (AuthenticationException ex) {
             log.error(ex.message)
@@ -127,7 +117,7 @@ class AuthController {
         } else if (!crmSecurityService.isValidTenant(TenantUtils.tenant)) {
             def defaultTenant = crmSecurityService.currentUser?.defaultTenant
             if (!defaultTenant) {
-                defaultTenant = crmSecurityService.getTenants()?.find {it}?.id
+                defaultTenant = crmSecurityService.getTenants()?.find { it }?.id
             }
             TenantUtils.setTenant(defaultTenant)
             request.session.tenant = defaultTenant
