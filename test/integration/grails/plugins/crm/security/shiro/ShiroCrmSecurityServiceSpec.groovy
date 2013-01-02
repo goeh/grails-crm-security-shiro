@@ -198,7 +198,7 @@ class ShiroCrmSecurityServiceSpec extends grails.plugin.spock.IntegrationSpec {
 
         when:
         crmSecurityService.runAs("test15") {
-            def a = crmSecurityService.createAccount()
+            def a = crmSecurityService.createAccount([:], [crmTester:1])
             tenant = crmSecurityService.createTenant(a, "Test Tenant")
             TenantUtils.withTenant(tenant.id) {
                 crmSecurityService.createRole("tester", ["foo", "bar"])
