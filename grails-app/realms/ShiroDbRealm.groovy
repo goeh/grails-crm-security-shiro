@@ -47,7 +47,7 @@ class ShiroDbRealm {
 
         // Null username is invalid
         if (username == null) {
-            throw new AccountException("Null usernames are not allowed by this realm.")
+            throw new AccountException("Blank username is not allowed by this realm.")
         }
 
         // Get the user with the given username. If the user is not
@@ -201,7 +201,9 @@ class ShiroDbRealm {
         def retval = permissions.find { implies(requiredPermission, it) }
 
         if (retval != null) {
-            log.debug "$userName@$tenant is permitted $requiredPermission by user permission [$retval]"
+            if (log.isDebugEnabled()) {
+                log.debug "$userName@$tenant is permitted $requiredPermission by user permission [$retval]"
+            }
             return true // Found a matching permission!
         }
 
@@ -218,7 +220,7 @@ class ShiroDbRealm {
                 eq('tenantId', tenant)
             }
             cache true
-        }.collect {it.role.permissions}.flatten()
+        }.collect { it.role.permissions }.flatten()
 
         // There may be some duplicate entries in the results, but
         // at this stage it is not worth trying to remove them. Now,
@@ -227,9 +229,13 @@ class ShiroDbRealm {
         retval = results.find { implies(requiredPermission, it) }
 
         if (retval != null) {
-            log.debug "$userName@$tenant is permitted $requiredPermission by role permission [$retval]"
+            if (log.isDebugEnabled()) {
+                log.debug "$userName@$tenant is permitted $requiredPermission by role permission [$retval]"
+            }
         } else {
-            log.debug "$userName@$tenant is NOT permitted $requiredPermission"
+            if (log.isDebugEnabled()) {
+                log.debug "$userName@$tenant is NOT permitted $requiredPermission"
+            }
         }
         return (retval != null)
     }

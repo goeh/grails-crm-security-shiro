@@ -7,6 +7,9 @@ class SecurityFilters {
 
     def dependsOn = [CrmTenantFilters]
 
+    def publicControllers
+    def protectedControllers
+
     def onNotAuthenticated(subject, filter) {
         // Check if the request is an Ajax one.
         if (filter.request.xhr || filter.request.contentType?.equalsIgnoreCase("text/xml")) {
@@ -25,14 +28,18 @@ class SecurityFilters {
                 if (!controllerName) return true
 
                 // Exclude public controllers in Config.groovy
-                def configControllers = grailsApplication.config.crm.security.controllers.public
-                if (configControllers?.find {match(it, controllerName, actionName)}) {
+                if(!publicControllers) {
+                    publicControllers = grailsApplication.config.crm.security.controllers.public
+                }
+                if (publicControllers?.find {match(it, controllerName, actionName)}) {
                     return true
                 }
 
                 // Check protected controllers in Config.groovy
-                configControllers = grailsApplication.config.crm.security.controllers.protected
-                if (configControllers?.find {match(it, controllerName, actionName)} && SecurityUtils.subject?.authenticated) {
+                if(! protectedControllers) {
+                    protectedControllers = grailsApplication.config.crm.security.controllers.protected
+                }
+                if (protectedControllers?.find {match(it, controllerName, actionName)} && SecurityUtils.subject?.authenticated) {
                     return true
                 }
 
@@ -44,8 +51,11 @@ class SecurityFilters {
 
                     // Add the ID if it's in the web parameters.
                     if (params.id) permString << ':' << params.id
-                    def status = SecurityUtils.subject.isPermitted(permString.toString())
-                    println "${SecurityUtils.subject?.principal}@${TenantUtils.tenant} $controllerName/$actionName ---> $permString = $status"
+                    def subject = SecurityUtils.subject
+                    def status = subject?.isPermitted(permString.toString())
+                    if(log.isDebugEnabled()) {
+                        log.debug "${status ? '+' : '!'} ${subject?.principal}@${TenantUtils.tenant} $controllerName/$actionName -> $permString"
+                    }
                     return status
                 }
             }
