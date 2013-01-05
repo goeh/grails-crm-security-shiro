@@ -17,6 +17,10 @@
 class CrmSecurityShiroUrlMappings {
 
     static mappings = {
+        name 'login': "/login" {
+            controller = 'auth'
+            action = 'login'
+        }
         name logout: "/auth/logout" {
             controller = 'auth'
             action = 'logout'

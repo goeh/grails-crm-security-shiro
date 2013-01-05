@@ -55,14 +55,21 @@ class ShiroDbRealm {
         // exception.
         def user = CrmUser.findByUsername(username)
         if (!user) {
-            throw new UnknownAccountException("No DB account found for user [${username}]")
+            // Try with email instead of username and see if we get a unique record.
+            def users = CrmUser.findAllByEmail(username)
+            if(users.size() == 1) {
+                user = users.find{it}
+            } else {
+                throw new UnknownAccountException("No DB account found for user [${username}]")
+            }
         }
         if (!user.enabled) {
             throw new UnknownAccountException("Account is disabled [${username}]")
         }
         log.info "Found CrmUser [${user.username}] in DB"
 
-        // DB queries could be case-insensitive (MySQL is by default), so we need to get the real username from DB.
+        // DB queries could be case-insensitive (MySQL is by default) or user was found through the email property.
+        // Therefore we need to get the real username from DB.
         username = user.username
 
         def shiroCrmUser = ShiroCrmUser.findByUsername(username)
