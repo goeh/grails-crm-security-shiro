@@ -7,6 +7,7 @@ class SecurityFilters {
 
     def dependsOn = [CrmTenantFilters]
 
+    def blockedControllers
     def publicControllers
     def protectedControllers
 
@@ -27,17 +28,26 @@ class SecurityFilters {
                 // Ignore direct views (e.g. the default main index page).
                 if (!controllerName) return true
 
+                // Check blocked controllers in Config.groovy
+                if(blockedControllers == null) {
+                    blockedControllers = grailsApplication.config.crm.security.controllers.blocked ?: false
+                }
+                if (blockedControllers?.find {match(it, controllerName, actionName)}) {
+                    response.sendError(grailsApplication.config.crm.security.blocked.status ?: 404)
+                    return false
+                }
+
                 // Exclude public controllers in Config.groovy
-                if(!publicControllers) {
-                    publicControllers = grailsApplication.config.crm.security.controllers.public
+                if(publicControllers == null) {
+                    publicControllers = grailsApplication.config.crm.security.controllers.public ?: false
                 }
                 if (publicControllers?.find {match(it, controllerName, actionName)}) {
                     return true
                 }
 
                 // Check protected controllers in Config.groovy
-                if(! protectedControllers) {
-                    protectedControllers = grailsApplication.config.crm.security.controllers.protected
+                if(protectedControllers == null) {
+                    protectedControllers = grailsApplication.config.crm.security.controllers.protected ?: false
                 }
                 if (protectedControllers?.find {match(it, controllerName, actionName)} && SecurityUtils.subject?.authenticated) {
                     return true
@@ -52,7 +62,9 @@ class SecurityFilters {
                     // Add the ID if it's in the web parameters.
                     if (params.id) permString << ':' << params.id
                     def subject = SecurityUtils.subject
+                    def t0 = System.nanoTime()
                     def status = subject?.isPermitted(permString.toString())
+                    println "isPermitted($permString) took ${((System.nanoTime() - t0) / 1000).intValue()} ns"
                     if(log.isDebugEnabled()) {
                         log.debug "${status ? '+' : '!'} ${subject?.principal}@${TenantUtils.tenant} $controllerName/$actionName -> $permString"
                     }
