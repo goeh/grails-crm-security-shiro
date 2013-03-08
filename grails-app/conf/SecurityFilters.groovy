@@ -64,9 +64,8 @@ class SecurityFilters {
                     def subject = SecurityUtils.subject
                     def t0 = System.nanoTime()
                     def status = subject?.isPermitted(permString.toString())
-                    println "isPermitted($permString) took ${((System.nanoTime() - t0) / 1000).intValue()} ns"
                     if(log.isDebugEnabled()) {
-                        log.debug "${status ? '+' : '!'} ${subject?.principal}@${TenantUtils.tenant} $controllerName/$actionName -> $permString"
+                        log.debug "${status ? '+' : '!'} ${subject?.principal}@${TenantUtils.tenant} $controllerName/$actionName -> $permString (${((System.nanoTime() - t0) / 1000000).intValue()} ms)"
                     }
                     return status
                 }
