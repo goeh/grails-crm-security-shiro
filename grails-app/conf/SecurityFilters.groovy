@@ -32,7 +32,7 @@ class SecurityFilters {
                 if(blockedControllers == null) {
                     blockedControllers = grailsApplication.config.crm.security.controllers.blocked ?: false
                 }
-                if (blockedControllers?.find {match(it, controllerName, actionName)}) {
+                if (blockedControllers && blockedControllers.find {match(it, controllerName, actionName)}) {
                     response.sendError(grailsApplication.config.crm.security.blocked.status ?: 404)
                     return false
                 }
@@ -41,7 +41,7 @@ class SecurityFilters {
                 if(publicControllers == null) {
                     publicControllers = grailsApplication.config.crm.security.controllers.public ?: false
                 }
-                if (publicControllers?.find {match(it, controllerName, actionName)}) {
+                if (publicControllers && publicControllers.find {match(it, controllerName, actionName)}) {
                     return true
                 }
 
@@ -49,7 +49,7 @@ class SecurityFilters {
                 if(protectedControllers == null) {
                     protectedControllers = grailsApplication.config.crm.security.controllers.protected ?: false
                 }
-                if (protectedControllers?.find {match(it, controllerName, actionName)} && SecurityUtils.subject?.authenticated) {
+                if (protectedControllers && protectedControllers.find {match(it, controllerName, actionName)} && SecurityUtils.subject?.authenticated) {
                     return true
                 }
 
