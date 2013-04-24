@@ -109,7 +109,7 @@ class ShiroCrmSecurityServiceSpec extends grails.plugin.spock.IntegrationSpec {
 
         when:
         crmSecurityService.runAs("test13") {
-            def a = crmSecurityService.createAccount()
+            def a = crmAccountService.createAccount()
             tenant = crmSecurityService.createTenant(a, "Test Tenant")
         }
         then:
@@ -158,7 +158,7 @@ class ShiroCrmSecurityServiceSpec extends grails.plugin.spock.IntegrationSpec {
 
         when:
         crmSecurityService.runAs("test14") {
-            def a = crmSecurityService.createAccount()
+            def a = crmAccountService.createAccount()
             tenant = crmSecurityService.createTenant(a, "Test Tenant")
             TenantUtils.withTenant(tenant.id) {
                 crmSecurityService.addPermissionToUser("test", "test14")
@@ -198,7 +198,7 @@ class ShiroCrmSecurityServiceSpec extends grails.plugin.spock.IntegrationSpec {
 
         when:
         crmSecurityService.runAs("test15") {
-            def a = crmSecurityService.createAccount([:], [crmTester:1])
+            def a = crmAccountService.createAccount([:], [crmTester:1])
             tenant = crmSecurityService.createTenant(a, "Test Tenant")
             TenantUtils.withTenant(tenant.id) {
                 crmSecurityService.createRole("tester", ["foo", "bar"])
@@ -244,7 +244,7 @@ class ShiroCrmSecurityServiceSpec extends grails.plugin.spock.IntegrationSpec {
 
         when:
         crmSecurityService.runAs("test16") {
-            def a = crmSecurityService.createAccount()
+            def a = crmAccountService.createAccount()
             result << crmSecurityService.createTenant(a, "Default")
             result << crmSecurityService.createTenant(a, "Svenska", [locale: swedish])
             result << crmSecurityService.createTenant(a, "Español", [locale: spanish])
@@ -266,7 +266,7 @@ class ShiroCrmSecurityServiceSpec extends grails.plugin.spock.IntegrationSpec {
 
         when:
         crmSecurityService.runAs("test17") {
-            def a = crmSecurityService.createAccount()
+            def a = crmAccountService.createAccount()
             tenant = crmSecurityService.createTenant(a, "Default")
         }
 

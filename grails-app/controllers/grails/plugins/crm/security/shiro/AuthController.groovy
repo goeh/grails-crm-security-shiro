@@ -59,10 +59,12 @@ class AuthController {
             // password is incorrect.
             SecurityUtils.subject.login(authToken)
             log.debug "Tenant set to ${TenantUtils.tenant} for ${params.username} at login"
-            if(! targetUri) {
+            if (!targetUri) {
                 targetUri = grailsApplication.config.crm.login.targetUri ?: '/'
             }
             log.debug "Redirecting ${params.username} to $targetUri"
+            event(for: 'crm', topic: 'login',
+                    data: [tenant: TenantUtils.tenant, user: SecurityUtils.subject?.principal?.toString(), uri: targetUri])
             redirect(uri: targetUri)
         }
         catch (AuthenticationException ex) {
@@ -97,6 +99,7 @@ class AuthController {
     }
 
     def logout = {
+        def tenant = TenantUtils.tenant
         def username = SecurityUtils.subject?.principal?.toString()
 
         // Log the user out of the application.
@@ -104,7 +107,7 @@ class AuthController {
 
         if (username) {
             // Use Spring Events plugin to broadcast that a user logged out.
-            event(for: "crm", topic: "logout", data: username)
+            event(for: 'crm', topic: 'logout', data: [tenant: tenant, user: username])
         }
 
         // Redirect back to the home page.
