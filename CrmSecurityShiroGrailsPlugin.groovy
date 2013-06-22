@@ -21,13 +21,13 @@ class CrmSecurityShiroGrailsPlugin {
     // Dependency group
     def groupId = "grails.crm"
     // the plugin version
-    def version = "1.0.7-SNAPSHOT"
+    def version = "1.1.0"
     // the version or versions of Grails the plugin is designed for
     def grailsVersion = "2.0 > *"
     // the other plugins this plugin depends on
     def dependsOn = [:]
     // Load after crm-core
-    def loadAfter = ['crmCore', 'shiro']
+    def loadAfter = ['crmSecurity', 'shiro']
     // resources that are excluded from plugin packaging
     def pluginExcludes = [
             "grails-app/views/error.gsp",
