@@ -25,6 +25,7 @@ import grails.plugins.crm.core.CrmException
 
 class ShiroCrmSecurityServiceSpec extends grails.plugin.spock.IntegrationSpec {
 
+    def crmAccountService
     def crmSecurityService
     def grailsApplication
 
@@ -255,7 +256,7 @@ class ShiroCrmSecurityServiceSpec extends grails.plugin.spock.IntegrationSpec {
         result[2].locale == spanish.toString()
     }
 
-    def "test default permissions"() {
+    def "test autocreated admin role"() {
         given:
         def securityConfig = grailsApplication.config.crm.security
         def tenant
@@ -272,6 +273,7 @@ class ShiroCrmSecurityServiceSpec extends grails.plugin.spock.IntegrationSpec {
 
         then:
         tenant != null
-        CrmRole.countByTenantId(tenant.id) == 3
+        CrmRole.countByTenantId(tenant.id) == 1
+        CrmRole.findByTenantId(tenant.id).name == 'admin'
     }
 }

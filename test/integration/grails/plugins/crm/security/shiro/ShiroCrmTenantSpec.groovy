@@ -8,6 +8,7 @@ import grails.plugins.crm.security.CrmUser
  */
 class ShiroCrmTenantSpec extends grails.plugin.spock.IntegrationSpec {
 
+    def crmAccountService
     def crmSecurityService
 
     def "set and get option"() {
