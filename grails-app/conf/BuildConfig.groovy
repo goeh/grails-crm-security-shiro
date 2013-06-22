@@ -20,6 +20,7 @@ grails.project.dependency.resolution = {
         grailsCentral()
     }
     dependencies {
+        //test "org.spockframework:spock-grails-support:0.7-groovy-2.0"
     }
 
     plugins {
@@ -29,8 +30,13 @@ grails.project.dependency.resolution = {
         }
         runtime ":hibernate:$grailsVersion"
 
-        test(":spock:0.7") { export = false }
-        test(":codenarc:0.17") { export = false }
+        test(":spock:0.7") {
+            export = false
+            //exclude "spock-grails-support"
+        }
+        test(":codenarc:0.18.1") { export = false }
+        test(":code-coverage:1.2.6") { export = false }
+
         compile(":platform-core:1.0.RC5") { excludes 'resources' }
         compile ':shiro:1.1.4'
 
@@ -43,14 +49,28 @@ grails.project.dependency.resolution = {
 codenarc {
     reports = {
         CrmXmlReport('xml') {
-            outputFile = 'CodeNarcReport.xml'
+            outputFile = 'target/test-reports/CodeNarcReport.xml'
             title = 'Grails CRM CodeNarc Report'
         }
         CrmHtmlReport('html') {
             outputFile = 'target/test-reports/CodeNarcReport.html'
             title = 'Grails CRM CodeNarc Report'
+
         }
+    }
+    properties = {
+        GrailsPublicControllerMethod.enabled = false
+        CatchException.enabled = false
+        CatchThrowable.enabled = false
+        ThrowException.enabled = false
+        ThrowRuntimeException.enabled = false
+        GrailsStatelessService.enabled = false
+        GrailsStatelessService.ignoreFieldNames = "dataSource,scope,sessionFactory,transactional,*Service,messageSource,grailsApplication,applicationContext,expose"
     }
     processTestUnit = false
     processTestIntegration = false
+}
+
+coverage {
+    exclusions = ['**/radar/**']
 }
