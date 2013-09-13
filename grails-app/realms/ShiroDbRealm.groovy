@@ -36,6 +36,7 @@ class ShiroDbRealm {
     def credentialMatcher
     def shiroPermissionResolver
     def crmSecurityService
+    def crmAccountService
 
     boolean supports() {
         return true
@@ -57,8 +58,8 @@ class ShiroDbRealm {
         if (!user) {
             // Try with email instead of username and see if we get a unique record.
             def users = CrmUser.findAllByEmail(username)
-            if(users.size() == 1) {
-                user = users.find{it}
+            if (users.size() == 1) {
+                user = users.find { it }
             } else {
                 throw new UnknownAccountException("No DB account found for user [${username}]")
             }
@@ -94,7 +95,7 @@ class ShiroDbRealm {
             def sha256hash = new Sha256Hash(password, user.email).toHex()
             if (sha256hash == shiroCrmUser.passwordHash || md5hash == shiroCrmUser.passwordHash) {
                 log.warn "Upgrading security for user ${user.username}..."
-                crmSecurityService.updateUser(user.username, [password: password])
+                crmSecurityService.updateUser(user, [password: password])
             } else {
                 user.loginFailures = user.loginFailures + 1
                 user.save(flush: true)
@@ -112,29 +113,26 @@ class ShiroDbRealm {
         }
 
         try {
-            setDefaultTenant(username)
+            def availableTenants = crmSecurityService.getTenants(username)*.id
+            setDefaultTenant(username, availableTenants)
         } catch (Exception e) {
             log.error("Failed to set default tenant for user [$username]", e)
         }
+
         return account
     }
 
-    void setDefaultTenant(String username) {
+    Long setDefaultTenant(String username, Collection<Long> availableTenants) {
         def user = crmSecurityService.getUser(username)
-        def tenant = user?.defaultTenant
-        if (tenant == null) {
-            def availableTenants = crmSecurityService.getTenants(username)
-            if (!availableTenants.isEmpty()) {
-                tenant = availableTenants.get(0).id
-            }
-        }
+        def tenant = availableTenants.find { user.defaultTenant == null || user.defaultTenant == it }
         if (tenant != null) {
             TenantUtils.tenant = tenant
             def session = SecurityUtils.getSubject()?.getSession(true)
             if (session) {
-                session.setAttribute("tenant", tenant)
+                session.tenant = tenant
             }
         }
+        tenant
     }
 
     def hasRole(principal, roleName) {
