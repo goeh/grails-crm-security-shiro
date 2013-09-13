@@ -16,6 +16,7 @@
 
 package grails.plugins.crm.security.shiro
 
+import groovy.transform.CompileStatic
 import org.apache.shiro.SecurityUtils
 import org.apache.shiro.crypto.SecureRandomNumberGenerator
 import org.apache.shiro.crypto.hash.Sha512Hash
@@ -42,6 +43,7 @@ class ShiroSecurityDelegate implements CrmSecurityDelegate {
      * Checks if the current user is authenticated in this session.
      * @return
      */
+    @CompileStatic
     boolean isAuthenticated() {
         SecurityUtils.subject?.isAuthenticated()
     }
@@ -51,6 +53,7 @@ class ShiroSecurityDelegate implements CrmSecurityDelegate {
      * @param permission
      * @return
      */
+    @CompileStatic
     boolean isPermitted(Object permission) {
         SecurityUtils.subject?.isPermitted(permission.toString())
     }
@@ -102,6 +105,7 @@ class ShiroSecurityDelegate implements CrmSecurityDelegate {
         new Sha512Hash(password, salt, credentialMatcher.hashIterations ?: 1).toHex()
     }
 
+    @CompileStatic
     byte[] generateSalt() {
         new SecureRandomNumberGenerator().nextBytes().getBytes()
     }
