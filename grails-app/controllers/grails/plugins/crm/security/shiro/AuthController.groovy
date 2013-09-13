@@ -28,14 +28,14 @@ class AuthController {
     def grailsApplication
     def crmSecurityService
 
-    def index = { redirect(action: "login", params: params) }
+    def index() { redirect(action: "login", params: params) }
 
-    def login = {
+    def login() {
         return [username: params.username, rememberMe: (params.rememberMe != null), targetUri: params.targetUri]
     }
 
-    def signIn = {
-        def authToken = new UsernamePasswordToken(params.username, params.password)
+    def signIn(String username, String password) {
+        def authToken = new UsernamePasswordToken(username, password)
 
         // Support for "remember me"
         if (params.rememberMe) {
@@ -58,11 +58,11 @@ class AuthController {
             // will be thrown if the username is unrecognised or the
             // password is incorrect.
             SecurityUtils.subject.login(authToken)
-            log.debug "Tenant set to ${TenantUtils.tenant} for ${params.username} at login"
+            log.debug "Tenant set to ${TenantUtils.tenant} for ${username} at login"
             if (!targetUri) {
                 targetUri = grailsApplication.config.crm.login.targetUri ?: '/'
             }
-            log.debug "Redirecting ${params.username} to $targetUri"
+            log.debug "Redirecting ${username} to $targetUri"
             event(for: 'crm', topic: 'login',
                     data: [tenant: TenantUtils.tenant, user: SecurityUtils.subject?.principal?.toString(), uri: targetUri])
             redirect(uri: targetUri)
@@ -71,12 +71,12 @@ class AuthController {
             log.error(ex.message)
             // Authentication failed, so display the appropriate message
             // on the login page.
-            log.info "Authentication failure for user '${params.username}'."
+            log.info "Authentication failure for user '${username}'."
             flash.error = message(code: "auth.login.failed")
 
             // Keep the username and "remember me" setting so that the
             // user doesn't have to enter them again.
-            def m = [username: params.username]
+            def m = [username: username]
             if (params.rememberMe) {
                 m["rememberMe"] = true
             }
@@ -98,7 +98,7 @@ class AuthController {
         }
     }
 
-    def logout = {
+    def logout() {
         def tenant = TenantUtils.tenant
         def username = SecurityUtils.subject?.principal?.toString()
 
@@ -114,7 +114,7 @@ class AuthController {
         redirect(uri: params.targetUri ?: "/")
     }
 
-    def unauthorized = {
+    def unauthorized() {
         if (request.xhr || request.contentType?.equalsIgnoreCase("text/xml")) {
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED)
         } else if (!crmSecurityService.isValidTenant(TenantUtils.tenant)) {
