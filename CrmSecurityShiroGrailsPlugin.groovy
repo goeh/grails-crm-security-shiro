@@ -18,27 +18,21 @@
 import grails.plugins.crm.security.shiro.ShiroSecurityDelegate
 
 class CrmSecurityShiroGrailsPlugin {
-    // Dependency group
     def groupId = "grails.crm"
-    // the plugin version
-    def version = "1.2.0-SNAPSHOT"
-    // the version or versions of Grails the plugin is designed for
-    def grailsVersion = "2.0 > *"
-    // the other plugins this plugin depends on
+    def version = "1.2.0"
+    def grailsVersion = "2.2 > *"
     def dependsOn = [:]
-    // Load after crm-core
     def loadAfter = ['crmSecurity', 'shiro']
-    // resources that are excluded from plugin packaging
     def pluginExcludes = [
             "grails-app/views/error.gsp",
             "grails-app/conf/ApplicationResources.groovy"
     ]
 
-    def title = "Shiro Security for Grails CRM" // Headline display name of the plugin
+    def title = "Apache Shiro Security for Grails CRM" // Headline display name of the plugin
     def author = "Goran Ehrsson"
     def authorEmail = "goran@technipelago.se"
     def description = '''
-This plugin leverage the shiro plugin to authenticate/authorize Grails CRM users.
+This plugin leverage the shiro plugin to authenticate and authorize Grails CRM users.
 '''
 
     def documentation = "https://github.com/goeh/grails-crm-security-shiro"
