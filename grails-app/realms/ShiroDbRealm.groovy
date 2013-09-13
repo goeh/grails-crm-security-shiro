@@ -129,7 +129,7 @@ class ShiroDbRealm {
             TenantUtils.tenant = tenant
             def session = SecurityUtils.getSubject()?.getSession(true)
             if (session) {
-                session.tenant = tenant
+                session.setAttribute('tenant', tenant)
             }
         }
         tenant
