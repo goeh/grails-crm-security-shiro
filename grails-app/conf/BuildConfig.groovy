@@ -1,17 +1,10 @@
-grails.project.class.dir = "target/classes"
-grails.project.test.class.dir = "target/test-classes"
-grails.project.test.reports.dir = "target/test-reports"
+grails.project.work.dir = "target"
 grails.project.target.level = 1.6
-//grails.project.war.file = "target/${appName}-${appVersion}.war"
 
 grails.project.repos.default = "crm"
 
 grails.project.dependency.resolution = {
-    // inherit Grails' default dependencies
-    inherits("global") {
-        // uncomment to disable ehcache
-        // excludes 'ehcache'
-    }
+    inherits("global") {}
     log "warn"
     legacyResolve false
     repositories {
@@ -23,7 +16,6 @@ grails.project.dependency.resolution = {
     dependencies {
         test "org.spockframework:spock-grails-support:0.7-groovy-2.0"
     }
-
     plugins {
         build(":tomcat:$grailsVersion",
                 ":release:2.2.1",
@@ -36,8 +28,8 @@ grails.project.dependency.resolution = {
             export = false
             exclude "spock-grails-support"
         }
-        test(":codenarc:0.18.1") { export = false }
-        test(":code-coverage:1.2.6") { export = false }
+        test(":codenarc:0.19") { export = false }
+        test(":code-coverage:1.2.7") { export = false }
 
         compile(":platform-core:1.0.RC5") { excludes 'resources' }
         compile ':shiro:1.1.4'
@@ -51,12 +43,12 @@ grails.project.dependency.resolution = {
 codenarc {
     reports = {
         CrmXmlReport('xml') {
-            outputFile = 'target/test-reports/CodeNarcReport.xml'
-            title = 'Grails CRM CodeNarc Report'
+            outputFile = 'target/CodeNarcReport.xml'
+            title = 'GR8 CRM CodeNarc Report'
         }
         CrmHtmlReport('html') {
-            outputFile = 'target/test-reports/CodeNarcReport.html'
-            title = 'Grails CRM CodeNarc Report'
+            outputFile = 'target/CodeNarcReport.html'
+            title = 'GR8 CRM CodeNarc Report'
 
         }
     }
@@ -76,3 +68,4 @@ codenarc {
 coverage {
     exclusions = ['**/radar/**']
 }
+
