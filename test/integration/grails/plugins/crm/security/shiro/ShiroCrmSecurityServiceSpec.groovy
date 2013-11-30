@@ -192,7 +192,7 @@ class ShiroCrmSecurityServiceSpec extends grails.plugin.spock.IntegrationSpec {
         def result = []
 
         given:
-        crmSecurityService.createUser([username: "test15", name: "Test User", email: "test@test.com", password: "test123", enabled: true])
+        def user = crmSecurityService.createUser([username: "test15", name: "Test User", email: "test@test.com", password: "test123", enabled: true])
         crmSecurityService.addPermissionAlias("foo", ["foo:*"])
         crmSecurityService.addPermissionAlias("bar", ["bar:*"])
         crmSecurityService.addPermissionAlias("baz", ["baz:*"])
@@ -203,7 +203,7 @@ class ShiroCrmSecurityServiceSpec extends grails.plugin.spock.IntegrationSpec {
             tenant = crmSecurityService.createTenant(a, "Test Tenant")
             TenantUtils.withTenant(tenant.id) {
                 crmSecurityService.createRole("tester", ["foo", "bar"])
-                crmSecurityService.addUserRole("test15", "tester")
+                crmSecurityService.addUserRole(user, "tester")
 
                 result << SecurityUtils.subject.hasRole("tester")
                 result << crmSecurityService.isPermitted("foo:index")
