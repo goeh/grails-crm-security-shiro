@@ -25,6 +25,8 @@ import javax.servlet.http.HttpServletResponse
 
 class AuthController {
 
+    static allowedMethods = [signIn: 'POST']
+
     def grailsApplication
     def crmSecurityService
 
@@ -35,7 +37,7 @@ class AuthController {
     }
 
     def signIn(String username, String password) {
-        def authToken = new UsernamePasswordToken(username, password)
+        def authToken = new UsernamePasswordToken((String)username, (String)password)
 
         // Support for "remember me"
         if (params.rememberMe) {
