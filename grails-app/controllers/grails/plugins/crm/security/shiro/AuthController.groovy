@@ -21,6 +21,8 @@ import org.apache.shiro.authc.AuthenticationException
 import org.apache.shiro.authc.UsernamePasswordToken
 import org.apache.shiro.web.util.WebUtils
 import grails.plugins.crm.core.TenantUtils
+
+import javax.servlet.http.Cookie
 import javax.servlet.http.HttpServletResponse
 
 class AuthController {
@@ -29,6 +31,7 @@ class AuthController {
 
     def grailsApplication
     def crmSecurityService
+    def crmThemeService
 
     def index() { redirect(action: "login", params: params) }
 
@@ -37,7 +40,7 @@ class AuthController {
     }
 
     def signIn(String username, String password) {
-        def authToken = new UsernamePasswordToken((String)username, (String)password)
+        def authToken = new UsernamePasswordToken((String) username, (String) password)
 
         // Support for "remember me"
         if (params.rememberMe) {
@@ -60,13 +63,31 @@ class AuthController {
             // will be thrown if the username is unrecognised or the
             // password is incorrect.
             SecurityUtils.subject.login(authToken)
-            log.debug "Tenant set to ${TenantUtils.tenant} for ${username} at login"
+            def tenant = TenantUtils.tenant
+            log.debug "Tenant set to ${tenant} for ${username} at login"
+
+            if (grailsApplication.config.crm.theme.cookie.set) {
+                def cookieName = grailsApplication.config.crm.theme.cookie.name
+                if (cookieName) {
+                    String theme = crmThemeService.getThemeName(tenant)
+                    if (theme) {
+                        def cookie = new Cookie(cookieName, theme)
+                        cookie.setDomain(grailsApplication.config.crm.theme.cookie.domain ?: "localhost")
+                        cookie.setPath(grailsApplication.config.crm.theme.cookie.path ?: "/")
+                        cookie.setMaxAge(grailsApplication.config.crm.theme.cookie.age ?: (60 * 60 * 24 * 365)) // Store cookie for 1 year
+                        response.addCookie(cookie)
+                        log.debug "Theme set to ${theme} for ${username} at login"
+                    }
+                } else {
+                    log.warn "Config parameter [crm.theme.cookie.set] is set but [crm.theme.cookie.name] is not"
+                }
+            }
             if (!targetUri) {
                 targetUri = grailsApplication.config.crm.login.targetUri ?: '/'
             }
             log.debug "Redirecting ${username} to $targetUri"
             event(for: 'crm', topic: 'login',
-                    data: [tenant: TenantUtils.tenant, user: SecurityUtils.subject?.principal?.toString(), uri: targetUri])
+                    data: [tenant: tenant, user: SecurityUtils.subject?.principal?.toString(), uri: targetUri])
             redirect(uri: targetUri)
         }
         catch (AuthenticationException ex) {
