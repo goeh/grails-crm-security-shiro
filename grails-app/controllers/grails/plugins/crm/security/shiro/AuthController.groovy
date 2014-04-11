@@ -66,15 +66,28 @@ class AuthController {
             def tenant = TenantUtils.tenant
             log.debug "Tenant set to ${tenant} for ${username} at login"
 
-            if (grailsApplication.config.crm.theme.cookie.set) {
-                def cookieName = grailsApplication.config.crm.theme.cookie.name
+            def themeConfig = grailsApplication.config.crm.theme
+            if (themeConfig.cookie.set) {
+                def cookieName = themeConfig.cookie.name
                 if (cookieName) {
                     String theme = crmThemeService.getThemeName(tenant)
                     if (theme) {
                         def cookie = new Cookie(cookieName, theme)
-                        cookie.setDomain(grailsApplication.config.crm.theme.cookie.domain ?: "localhost")
-                        cookie.setPath(grailsApplication.config.crm.theme.cookie.path ?: "/")
-                        cookie.setMaxAge(grailsApplication.config.crm.theme.cookie.age ?: (60 * 60 * 24 * 365)) // Store cookie for 1 year
+                        def domain
+                        def path
+                        if(theme) {
+                            domain = themeConfig."$theme".cookie.domain
+                            path = themeConfig."$theme".cookie.path
+                        }
+                        if(! domain) {
+                            domain = themeConfig.cookie.domain ?: 'localhost'
+                        }
+                        if(! path) {
+                            path = themeConfig.cookie.path ?: "/"
+                        }
+                        cookie.setDomain(domain)
+                        cookie.setPath(path)
+                        cookie.setMaxAge(themeConfig.cookie.age ?: (60 * 60 * 24 * 365)) // Store cookie for 1 year
                         response.addCookie(cookie)
                         log.debug "Theme set to ${theme} for ${username} at login"
                     }
