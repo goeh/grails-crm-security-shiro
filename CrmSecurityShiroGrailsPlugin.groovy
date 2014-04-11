@@ -19,7 +19,7 @@ import grails.plugins.crm.security.shiro.ShiroSecurityDelegate
 
 class CrmSecurityShiroGrailsPlugin {
     def groupId = "grails.crm"
-    def version = "1.2.4"
+    def version = "1.2.5"
     def grailsVersion = "2.2 > *"
     def dependsOn = [:]
     def loadAfter = ['crmSecurity', 'shiro']
