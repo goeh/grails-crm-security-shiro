@@ -75,14 +75,14 @@ class AuthController {
                         def cookie = new Cookie(cookieName, theme)
                         def domain
                         def path
-                        if(theme) {
+                        if (theme) {
                             domain = themeConfig."$theme".cookie.domain
                             path = themeConfig."$theme".cookie.path
                         }
-                        if(! domain) {
+                        if (!domain) {
                             domain = themeConfig.cookie.domain ?: 'localhost'
                         }
-                        if(! path) {
+                        if (!path) {
                             path = themeConfig.cookie.path ?: "/"
                         }
                         cookie.setDomain(domain)
