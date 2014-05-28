@@ -1,44 +1,63 @@
+grails.project.class.dir = "target/classes"
+grails.project.test.class.dir = "target/test-classes"
+grails.project.test.reports.dir = "target/test-reports"
 grails.project.work.dir = "target"
-grails.project.target.level = 1.6
 
 grails.project.repos.default = "crm"
 
+grails.project.fork = [
+    //  compile: [maxMemory: 256, minMemory: 64, debug: false, maxPerm: 256, daemon:true],
+    test: [maxMemory: 768, minMemory: 64, debug: false, maxPerm: 256, daemon:true],
+    run: [maxMemory: 768, minMemory: 64, debug: false, maxPerm: 256, forkReserve:false],
+    war: [maxMemory: 768, minMemory: 64, debug: false, maxPerm: 256, forkReserve:false],
+    console: [maxMemory: 768, minMemory: 64, debug: false, maxPerm: 256]
+]
+
+grails.project.dependency.resolver = "maven"
 grails.project.dependency.resolution = {
-    inherits("global") {}
+    inherits("global") { excludes 'ehcache-core' }
     log "warn"
-    legacyResolve false
     repositories {
         mavenRepo "http://labs.technipelago.se/repo/crm-releases-local/"
         mavenRepo "http://labs.technipelago.se/repo/plugins-releases-local/"
         grailsCentral()
         mavenCentral()
+        mavenLocal()
     }
     dependencies {
-        test "org.spockframework:spock-grails-support:0.7-groovy-2.0"
+        compile "net.sf.ehcache:ehcache-core:2.4.6"
     }
     plugins {
-        build(":tomcat:$grailsVersion",
-                ":release:2.2.1",
+        build(":release:3.0.1",
                 ":rest-client-builder:1.0.3") {
             export = false
         }
-        runtime ":hibernate:$grailsVersion"
-
-        test(":spock:0.7") {
-            export = false
-            exclude "spock-grails-support"
+        test(":hibernate:3.6.10.15") {
+          excludes 'ehcache-core'
+          export = false
         }
-        test(":codenarc:0.19") { export = false }
+
+        test(":codenarc:0.21") { export = false }
         test(":code-coverage:1.2.7") { export = false }
 
         compile(":platform-core:1.0.0") { excludes 'resources' }
-        compile ':shiro:1.1.4'
+        compile(":cache:1.1.6")
+        test(":cache-ehcache:1.0.1") {
+            excludes 'ehcache'
+            export = false
+        }
+        compile(":shiro:1.2.1") {
+        }
 
-        compile "grails.crm:crm-core:latest.integration"
-        compile "grails.crm:crm-security:latest.integration"
-        runtime "grails.crm:crm-feature:latest.integration"
+//        compile "grails.crm:crm-core:latest.integration"
+//        compile "grails.crm:crm-security:latest.integration"
+//        runtime "grails.crm:crm-feature:latest.integration"
     }
 }
+
+grails.plugin.location.'crm-core' = '../crm-core'
+grails.plugin.location.'crm-security' = '../crm-security'
+grails.plugin.location.'crm-feature' = '../crm-feature'
 
 codenarc {
     reports = {
