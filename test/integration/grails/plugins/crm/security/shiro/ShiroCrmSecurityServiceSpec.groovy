@@ -17,6 +17,7 @@
 package grails.plugins.crm.security.shiro
 
 import grails.plugins.crm.core.TenantUtils
+import grails.plugins.crm.security.CrmAccount
 import grails.plugins.crm.security.CrmRole
 import grails.plugins.crm.security.CrmUser
 import org.apache.shiro.SecurityUtils
@@ -110,7 +111,7 @@ class ShiroCrmSecurityServiceSpec extends grails.plugin.spock.IntegrationSpec {
 
         when:
         crmSecurityService.runAs("test13") {
-            def a = crmAccountService.createAccount()
+            def a = crmAccountService.createAccount(status: "active")
             tenant = crmSecurityService.createTenant(a, "Test Tenant")
         }
         then:
@@ -159,7 +160,7 @@ class ShiroCrmSecurityServiceSpec extends grails.plugin.spock.IntegrationSpec {
 
         when:
         crmSecurityService.runAs("test14") {
-            def a = crmAccountService.createAccount()
+            def a = crmAccountService.createAccount(status: "active")
             tenant = crmSecurityService.createTenant(a, "Test Tenant")
             TenantUtils.withTenant(tenant.id) {
                 crmSecurityService.addPermissionToUser("test", "test14")
@@ -199,7 +200,7 @@ class ShiroCrmSecurityServiceSpec extends grails.plugin.spock.IntegrationSpec {
 
         when:
         crmSecurityService.runAs("test15") {
-            def a = crmAccountService.createAccount([:], [crmTester:1])
+            def a = crmAccountService.createAccount([status: "active"], [crmTester: 1])
             tenant = crmSecurityService.createTenant(a, "Test Tenant")
             TenantUtils.withTenant(tenant.id) {
                 crmSecurityService.createRole("tester", ["foo", "bar"])
@@ -245,7 +246,7 @@ class ShiroCrmSecurityServiceSpec extends grails.plugin.spock.IntegrationSpec {
 
         when:
         crmSecurityService.runAs("test16") {
-            def a = crmAccountService.createAccount()
+            def a = crmAccountService.createAccount(status: "active")
             result << crmSecurityService.createTenant(a, "Default")
             result << crmSecurityService.createTenant(a, "Svenska", [locale: swedish])
             result << crmSecurityService.createTenant(a, "Español", [locale: spanish])
@@ -267,7 +268,7 @@ class ShiroCrmSecurityServiceSpec extends grails.plugin.spock.IntegrationSpec {
 
         when:
         crmSecurityService.runAs("test17") {
-            def a = crmAccountService.createAccount()
+            def a = crmAccountService.createAccount(status: "active")
             tenant = crmSecurityService.createTenant(a, "Default")
         }
 
@@ -275,5 +276,54 @@ class ShiroCrmSecurityServiceSpec extends grails.plugin.spock.IntegrationSpec {
         tenant != null
         CrmRole.countByTenantId(tenant.id) == 1
         CrmRole.findByTenantId(tenant.id).name == 'admin'
+    }
+
+    def "make sure default tenant is correct"() {
+        given: "create a user"
+        def user = crmSecurityService.createUser([username: "test18", name: "Test User", email: "test@test.com", password: "test123", enabled: true])
+
+        when: "create an account and a tenant"
+        def t1 = crmSecurityService.runAs(user.username) {
+            def privateAccount = crmAccountService.createAccount(status: "active")
+            crmSecurityService.createTenant(privateAccount, "User 18's Private Tenant")
+        }
+        def a1 = t1.account
+
+        then: "the account is active"
+        a1.active == true
+        t1.id != null
+
+        when: "create a new account for the same user"
+        def t2 = crmSecurityService.runAs(user.username) {
+            def corporateAccount = crmAccountService.createAccount(status: "active")
+            crmSecurityService.createTenant(corporateAccount, "User 18's Corporate Tenant")
+        }
+        def a2 = t2.account
+
+        then: "this second account is also active from the start"
+        a2.active == true
+        t2.id != null
+
+        when: "list all available tenants for the user"
+        def availableTenants = crmSecurityService.getTenants(user.username)
+
+        then: "both tenants should be active"
+        availableTenants.size() == 2
+
+        when: "close/expire the first account"
+        a1.expires = new java.sql.Date((new Date() - 7).time)
+        a1.status = CrmAccount.STATUS_CLOSED
+        a1.name = "This account expired a week ago"
+        a1.save(flush: true)
+
+        then: "the account is not active anymore"
+        a1.active == false
+
+        when: "list all available tenants for the user"
+        availableTenants = crmSecurityService.getTenants(user.username)
+
+        then: "only one (the corporate) tenant should be active"
+        availableTenants.size() == 1
+        availableTenants[0].name == "User 18's Corporate Tenant"
     }
 }
