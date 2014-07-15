@@ -12,3 +12,7 @@ With CRM we mean features like:
 
 ## Shiro Security Plugin
 This plugin uses Apache Shiro to authenticate/authorize Grails CRM users.
+
+## Documentation
+
+Complete documentation can be found at [gr8crm.github.io](http://gr8crm.github.io/plugins/crm-security-shiro/crm-security-shiro.html)
