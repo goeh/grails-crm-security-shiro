@@ -17,7 +17,7 @@
 import grails.plugins.crm.security.shiro.ShiroSecurityDelegate
 
 class CrmSecurityShiroGrailsPlugin {
-    def groupId = "gr8crm"
+    def groupId = ""
     def version = "2.0.0"
     def grailsVersion = "2.2 > *"
     def dependsOn = [:]
@@ -32,7 +32,7 @@ class CrmSecurityShiroGrailsPlugin {
     def description = '''
 This plugin leverage the shiro plugin to authenticate and authorize GR8 CRM users.
 '''
-    def documentation = "http://gr8crm.github.io/plugins/crm-security-shiro/crm-security-shiro.html"
+    def documentation = "http://gr8crm.github.io/plugins/crm-security-shiro/"
     def license = "APACHE"
     def organization = [name: "Technipelago AB", url: "http://www.technipelago.se/"]
     def issueManagement = [system: "github", url: "https://github.com/goeh/grails-crm-security-shiro/issues"]
