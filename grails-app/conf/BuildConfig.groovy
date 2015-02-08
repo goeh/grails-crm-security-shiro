@@ -32,7 +32,7 @@ grails.project.dependency.resolution = {
         compile(":platform-core:1.0.0") { excludes 'resources' }
         compile ':shiro:1.1.4'
 
-        compile ":crm-core:2.0.0"
+        compile ":crm-core:2.0.2"
         compile ":crm-security:2.0.0"
         compile ":crm-feature:2.0.0"
     }
