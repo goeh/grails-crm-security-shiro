@@ -1,9 +1,7 @@
 grails.project.class.dir = "target/classes"
 grails.project.test.class.dir = "target/test-classes"
 grails.project.test.reports.dir = "target/test-reports"
-grails.project.work.dir = "target"
-
-grails.project.repos.default = "crm"
+grails.project.target.level = 1.6
 
 grails.project.fork = [
     //  compile: [maxMemory: 256, minMemory: 64, debug: false, maxPerm: 256, daemon:true],
@@ -15,76 +13,35 @@ grails.project.fork = [
 
 grails.project.dependency.resolver = "maven"
 grails.project.dependency.resolution = {
-    inherits("global") { excludes 'ehcache-core' }
+    inherits("global") {}
     log "warn"
     repositories {
-        mavenRepo "http://labs.technipelago.se/repo/crm-releases-local/"
-        mavenRepo "http://labs.technipelago.se/repo/plugins-releases-local/"
         grailsCentral()
         mavenCentral()
         mavenLocal()
     }
     dependencies {
-        compile "net.sf.ehcache:ehcache-core:2.4.6"
+        // See https://jira.grails.org/browse/GPHIB-30
+        test("javax.validation:validation-api:1.1.0.Final") { export = false }
+        test("org.hibernate:hibernate-validator:5.0.3.Final") { export = false }
     }
     plugins {
         build(":release:3.0.1",
                 ":rest-client-builder:1.0.3") {
             export = false
         }
-        test(":hibernate:3.6.10.15") {
-          excludes 'ehcache-core'
-          export = false
-        }
-
-        test(":codenarc:0.21") { export = false }
-        test(":code-coverage:1.2.7") { export = false }
-
-        compile(":platform-core:1.0.0") { excludes 'resources' }
-        compile(":cache:1.1.6")
-        test(":cache-ehcache:1.0.1") {
-            excludes 'ehcache'
+        test(":hibernate4:4.3.6.1") {
+            excludes "net.sf.ehcache:ehcache-core"  // remove this when http://jira.grails.org/browse/GPHIB-18 is resolved
             export = false
         }
+
+        test(":codenarc:0.22") { export = false }
+        test(":code-coverage:2.0.3-3") { export = false }
+
         compile(":shiro:1.2.1") {
+            excludes 'hibernate'
         }
 
-//        compile "grails.crm:crm-core:latest.integration"
-//        compile "grails.crm:crm-security:latest.integration"
-//        runtime "grails.crm:crm-feature:latest.integration"
+        compile ":crm-security:2.4.0-SNAPSHOT"
     }
 }
-
-grails.plugin.location.'crm-core' = '../crm-core'
-grails.plugin.location.'crm-security' = '../crm-security'
-grails.plugin.location.'crm-feature' = '../crm-feature'
-
-codenarc {
-    reports = {
-        CrmXmlReport('xml') {
-            outputFile = 'target/CodeNarcReport.xml'
-            title = 'GR8 CRM CodeNarc Report'
-        }
-        CrmHtmlReport('html') {
-            outputFile = 'target/CodeNarcReport.html'
-            title = 'GR8 CRM CodeNarc Report'
-
-        }
-    }
-    properties = {
-        GrailsPublicControllerMethod.enabled = false
-        CatchException.enabled = false
-        CatchThrowable.enabled = false
-        ThrowException.enabled = false
-        ThrowRuntimeException.enabled = false
-        GrailsStatelessService.enabled = false
-        GrailsStatelessService.ignoreFieldNames = "dataSource,scope,sessionFactory,transactional,*Service,messageSource,grailsApplication,applicationContext,expose"
-    }
-    processTestUnit = false
-    processTestIntegration = false
-}
-
-coverage {
-    exclusions = ['**/radar/**']
-}
-

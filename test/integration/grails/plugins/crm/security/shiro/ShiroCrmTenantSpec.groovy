@@ -6,7 +6,7 @@ import grails.plugins.crm.security.CrmUser
 /**
  * Test ShiroCrmTenant and ShiroCrmTenantOption.
  */
-class ShiroCrmTenantSpec extends grails.plugin.spock.IntegrationSpec {
+class ShiroCrmTenantSpec extends grails.test.spock.IntegrationSpec {
 
     def crmAccountService
     def crmSecurityService
@@ -15,7 +15,7 @@ class ShiroCrmTenantSpec extends grails.plugin.spock.IntegrationSpec {
         given:
         def user = crmSecurityService.createUser(username: "inttest", name: "Integration Test", email: "test@test.com", password: "secret", enabled: true)
         def t = crmSecurityService.runAs(user.username) {
-            def a = crmAccountService.createAccount()
+            def a = crmAccountService.createAccount(status: 'active')
             crmSecurityService.createTenant(a, "test")
         }
 

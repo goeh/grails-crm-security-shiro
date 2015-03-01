@@ -23,7 +23,7 @@ import org.apache.shiro.SecurityUtils
 import org.apache.shiro.authc.UsernamePasswordToken
 import grails.plugins.crm.core.CrmException
 
-class ShiroCrmSecurityServiceSpec extends grails.plugin.spock.IntegrationSpec {
+class ShiroCrmSecurityServiceSpec extends grails.test.spock.IntegrationSpec {
 
     def crmAccountService
     def crmSecurityService
@@ -110,7 +110,7 @@ class ShiroCrmSecurityServiceSpec extends grails.plugin.spock.IntegrationSpec {
 
         when:
         crmSecurityService.runAs("test13") {
-            def a = crmAccountService.createAccount()
+            def a = crmAccountService.createAccount(status: 'active')
             tenant = crmSecurityService.createTenant(a, "Test Tenant")
         }
         then:
@@ -159,7 +159,7 @@ class ShiroCrmSecurityServiceSpec extends grails.plugin.spock.IntegrationSpec {
 
         when:
         crmSecurityService.runAs("test14") {
-            def a = crmAccountService.createAccount()
+            def a = crmAccountService.createAccount(status: 'active')
             tenant = crmSecurityService.createTenant(a, "Test Tenant")
             TenantUtils.withTenant(tenant.id) {
                 crmSecurityService.addPermissionToUser("test", "test14")
@@ -199,7 +199,7 @@ class ShiroCrmSecurityServiceSpec extends grails.plugin.spock.IntegrationSpec {
 
         when:
         crmSecurityService.runAs("test15") {
-            def a = crmAccountService.createAccount([:], [crmTester:1])
+            def a = crmAccountService.createAccount([status: 'active'], [crmTester:1])
             tenant = crmSecurityService.createTenant(a, "Test Tenant")
             TenantUtils.withTenant(tenant.id) {
                 crmSecurityService.createRole("tester", ["foo", "bar"])
@@ -245,7 +245,7 @@ class ShiroCrmSecurityServiceSpec extends grails.plugin.spock.IntegrationSpec {
 
         when:
         crmSecurityService.runAs("test16") {
-            def a = crmAccountService.createAccount()
+            def a = crmAccountService.createAccount(status: 'active')
             result << crmSecurityService.createTenant(a, "Default")
             result << crmSecurityService.createTenant(a, "Svenska", [locale: swedish])
             result << crmSecurityService.createTenant(a, "Español", [locale: spanish])
@@ -267,7 +267,7 @@ class ShiroCrmSecurityServiceSpec extends grails.plugin.spock.IntegrationSpec {
 
         when:
         crmSecurityService.runAs("test17") {
-            def a = crmAccountService.createAccount()
+            def a = crmAccountService.createAccount(status: 'active')
             tenant = crmSecurityService.createTenant(a, "Default")
         }
 

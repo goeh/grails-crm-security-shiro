@@ -1,0 +1,17 @@
+plugins {
+  id "org.asciidoctor.convert" version "1.5.2"
+}
+
+def pluginDescriptor = projectDir.listFiles().find { it.name.endsWith('GrailsPlugin.groovy') }
+
+version = (pluginDescriptor.text =~ /def\s+version\s*=\s*"(.+)"/)[0][1]
+
+def gr8crmDir = System.getenv('GR8CRM_DOCS')
+
+asciidoctor {
+    separateOutputDirs false
+    sourceDir = new File('src/docs')
+    outputDir = new File(gr8crmDir ?: buildDir, project.name)
+    options eruby: 'erubis'
+    attributes revnumber: project.version, toc: '', idprefix: 'crm-', idseparator: '-', 'source-highlighter': 'prettify'
+}
