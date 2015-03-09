@@ -3,8 +3,6 @@ grails.project.test.class.dir = "target/test-classes"
 grails.project.test.reports.dir = "target/test-reports"
 grails.project.target.level = 1.6
 
-<<<<<<< HEAD
-=======
 grails.project.fork = [
     //  compile: [maxMemory: 256, minMemory: 64, debug: false, maxPerm: 256, daemon:true],
     test: [maxMemory: 768, minMemory: 64, debug: false, maxPerm: 256, daemon:true],
@@ -14,7 +12,6 @@ grails.project.fork = [
 ]
 
 grails.project.dependency.resolver = "maven"
->>>>>>> grails-2.4
 grails.project.dependency.resolution = {
     inherits("global") {}
     log "warn"
@@ -37,22 +34,9 @@ grails.project.dependency.resolution = {
             excludes "net.sf.ehcache:ehcache-core"  // remove this when http://jira.grails.org/browse/GPHIB-18 is resolved
             export = false
         }
-<<<<<<< HEAD
-        test(":codenarc:0.21") { export = false }
-        test(":code-coverage:1.2.7") { export = false }
-=======
->>>>>>> grails-2.4
-
         test(":codenarc:0.22") { export = false }
         test(":code-coverage:2.0.3-3") { export = false }
 
-<<<<<<< HEAD
-        compile ":crm-core:2.0.2"
-        compile ":crm-security:2.0.0"
-        compile ":crm-feature:2.0.0"
-    }
-}
-=======
         compile(":shiro:1.2.1") {
             excludes 'hibernate'
         }
@@ -60,4 +44,3 @@ grails.project.dependency.resolution = {
         compile ":crm-security:2.4.0-SNAPSHOT"
     }
 }
->>>>>>> grails-2.4
