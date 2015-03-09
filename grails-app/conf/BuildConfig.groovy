@@ -41,6 +41,6 @@ grails.project.dependency.resolution = {
             excludes 'hibernate'
         }
 
-        compile ":crm-security:2.4.0-SNAPSHOT"
+        compile ":crm-security:2.4.0"
     }
 }
