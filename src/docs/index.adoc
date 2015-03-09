@@ -46,6 +46,11 @@ This realm is used when a user tries to login to the application. The database i
 
 No configuration needed for this plugin.
 
+== Changes
+
+2.4.0:: First version compatible with Grails 2.4.4.
+2.0.0:: First public release
+
 == License
 
 {license}
@@ -53,3 +58,9 @@ No configuration needed for this plugin.
 == Source Code
 
 The source code for this plugin is available at {gr8source}
+
+== Contributing
+
+Please report {gr8source}/issues[issues or suggestions].
+
+Want to improve the plugin: Fork the {gr8source}[repository] and send a pull request.

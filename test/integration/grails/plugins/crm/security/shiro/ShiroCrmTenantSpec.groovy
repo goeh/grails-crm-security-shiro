@@ -5,7 +5,7 @@ import grails.plugins.crm.core.CrmException
 /**
  * Test ShiroCrmTenant and ShiroCrmTenantOption.
  */
-class ShiroCrmTenantSpec extends grails.plugin.spock.IntegrationSpec {
+class ShiroCrmTenantSpec extends grails.test.spock.IntegrationSpec {
 
     def crmAccountService
     def crmSecurityService

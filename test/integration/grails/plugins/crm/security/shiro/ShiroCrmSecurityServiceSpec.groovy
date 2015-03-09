@@ -19,12 +19,10 @@ package grails.plugins.crm.security.shiro
 import grails.plugins.crm.core.TenantUtils
 import grails.plugins.crm.security.CrmAccount
 import grails.plugins.crm.security.CrmRole
-import grails.plugins.crm.security.CrmUser
 import org.apache.shiro.SecurityUtils
 import org.apache.shiro.authc.UsernamePasswordToken
-import grails.plugins.crm.core.CrmException
 
-class ShiroCrmSecurityServiceSpec extends grails.plugin.spock.IntegrationSpec {
+class ShiroCrmSecurityServiceSpec extends grails.test.spock.IntegrationSpec {
 
     def crmAccountService
     def crmSecurityService
