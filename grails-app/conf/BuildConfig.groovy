@@ -39,6 +39,7 @@ grails.project.dependency.resolution = {
 
         compile(":shiro:1.2.1") {
             excludes 'hibernate'
+            excludes 'quartz'
         }
 
         compile ":crm-security:2.4.0"
