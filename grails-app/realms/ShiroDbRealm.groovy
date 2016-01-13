@@ -35,7 +35,6 @@ class ShiroDbRealm {
     def credentialMatcher
     def shiroPermissionResolver
     def crmSecurityService
-    def crmAccountService
 
     boolean supports() {
         return true
@@ -50,75 +49,82 @@ class ShiroDbRealm {
             throw new AccountException("Blank username is not allowed by this realm.")
         }
 
-        // Get the user with the given username. If the user is not
-        // found, then they don't have an account and we throw an
-        // exception.
-        def user = CrmUser.findByUsername(username)
-        if (!user) {
-            // Try with email instead of username and see if we get a unique record.
-            def users = CrmUser.findAllByEmail(username)
-            if (users.size() == 1) {
-                user = users.find { it }
-            } else {
-                throw new UnknownAccountException("No DB account found for user [${username}]")
-            }
-        }
-        if (!user.enabled) {
-            throw new UnknownAccountException("Account is disabled [${username}]")
-        }
-        log.info "Found CrmUser [${user.username}] in DB"
-
-        // DB queries could be case-insensitive (MySQL is by default) or user was found through the email property.
-        // Therefore we need to get the real username from DB.
-        username = user.username
-
-        def shiroCrmUser = ShiroCrmUser.findByUsername(username)
-        if (!shiroCrmUser) {
-            log.error "A CrmUser was found with username [${username}] but no matching ShiroCrmUser!"
-            throw new UnknownAccountException("No ShiroCrmUser found with username [${username}]")
-        }
-        // Now check the user's password against the hashed value stored
-        // in the database.
-        def salt
-        if (shiroCrmUser.passwordSalt) {
-            salt = shiroCrmUser.passwordSalt.decodeBase64()
-        } else {
-            salt = username.bytes
-        }
-        def account = new SimpleAccount(username, shiroCrmUser.passwordHash, new SimpleByteSource(salt), "ShiroDbRealm")
-        if (!credentialMatcher.doCredentialsMatch(authToken, account)) {
-            // If that didn't work, try with the weaker password hash that was used in older versions.
-            // If that password match, upgrade the hash to stronger encryption.
-            def password = new String(authToken.password)
-            def md5hash = password.encodeAsMD5()
-            def sha256hash = new Sha256Hash(password, user.email).toHex()
-            if (sha256hash == shiroCrmUser.passwordHash || md5hash == shiroCrmUser.passwordHash) {
-                log.warn "Upgrading security for user ${user.username}..."
-                crmSecurityService.updateUser(user, [password: password])
-            } else {
-                user.loginFailures = user.loginFailures + 1
-                user.save(flush: true)
-                if (!user.enabled) {
-                    log.warn "To many login failures, account [$user] is disabled"
-                    throw new UnknownAccountException("Account is disabled [${username}]")
+        // 2016-01-13 goeh
+        // When using Basic Authentication (org.apache.shiro.web.filter.authc.BasicHttpAuthenticationFilter)
+        // We get "org.hibernate.HibernateException: No Session found for current thread".
+        // Wrapping all DB accesses in 'withNewSession' makes it work again.
+        // This *was* working in Grails 2.2.4 but not in Grails 2.5.2. I don't have time right to investigate more.
+        CrmUser.withNewSession {
+            // Get the user with the given username. If the user is not
+            // found, then they don't have an account and we throw an
+            // exception.
+            def user = CrmUser.findByUsername(username)
+            if (!user) {
+                // Try with email instead of username and see if we get a unique record.
+                def users = CrmUser.findAllByEmail(username)
+                if (users.size() == 1) {
+                    user = users.find { it }
+                } else {
+                    throw new UnknownAccountException("No DB account found for user [${username}]")
                 }
-                log.info "Invalid password (DB realm)"
-                throw new IncorrectCredentialsException("Invalid password for user '${username}'")
             }
-        }
-        if (user.loginFailures > 0) {
-            log.info "Login successful, resetting login failures for $user"
-            user.loginFailures = 0
-        }
+            if (!user.enabled) {
+                throw new UnknownAccountException("Account is disabled [${username}]")
+            }
+            log.info "Found CrmUser [${user.username}] in DB"
 
-        try {
-            def availableTenants = crmSecurityService.getTenants(username)*.id
-            setDefaultTenant(username, availableTenants)
-        } catch (Exception e) {
-            log.error("Failed to set default tenant for user [$username]", e)
-        }
+            // DB queries could be case-insensitive (MySQL is by default) or user was found through the email property.
+            // Therefore we need to get the real username from DB.
+            username = user.username
 
-        return account
+            def shiroCrmUser = ShiroCrmUser.findByUsername(username)
+            if (!shiroCrmUser) {
+                log.error "A CrmUser was found with username [${username}] but no matching ShiroCrmUser!"
+                throw new UnknownAccountException("No ShiroCrmUser found with username [${username}]")
+            }
+            // Now check the user's password against the hashed value stored
+            // in the database.
+            def salt
+            if (shiroCrmUser.passwordSalt) {
+                salt = shiroCrmUser.passwordSalt.decodeBase64()
+            } else {
+                salt = username.bytes
+            }
+            def account = new SimpleAccount(username, shiroCrmUser.passwordHash, new SimpleByteSource(salt), "ShiroDbRealm")
+            if (!credentialMatcher.doCredentialsMatch(authToken, account)) {
+                // If that didn't work, try with the weaker password hash that was used in older versions.
+                // If that password match, upgrade the hash to stronger encryption.
+                def password = new String(authToken.password)
+                def md5hash = password.encodeAsMD5()
+                def sha256hash = new Sha256Hash(password, user.email).toHex()
+                if (sha256hash == shiroCrmUser.passwordHash || md5hash == shiroCrmUser.passwordHash) {
+                    log.warn "Upgrading security for user ${user.username}..."
+                    crmSecurityService.updateUser(user, [password: password])
+                } else {
+                    user.loginFailures = user.loginFailures + 1
+                    user.save(flush: true)
+                    if (!user.enabled) {
+                        log.warn "To many login failures, account [$user] is disabled"
+                        throw new UnknownAccountException("Account is disabled [${username}]")
+                    }
+                    log.info "Invalid password (DB realm)"
+                    throw new IncorrectCredentialsException("Invalid password for user '${username}'")
+                }
+            }
+            if (user.loginFailures > 0) {
+                log.info "Login successful, resetting login failures for $user"
+                user.loginFailures = 0
+            }
+
+            try {
+                def availableTenants = crmSecurityService.getTenants(username)*.id
+                setDefaultTenant(username, availableTenants)
+            } catch (Exception e) {
+                log.error("Failed to set default tenant for user [$username]", e)
+            }
+
+            return account
+        }
     }
 
     Long setDefaultTenant(String username, Collection<Long> availableTenants) {
