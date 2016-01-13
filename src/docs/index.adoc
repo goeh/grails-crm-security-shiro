@@ -48,6 +48,8 @@ No configuration needed for this plugin.
 
 == Changes
 
+2.4.2:: Fixes problem with no Hibernate session when using basic authentication
+2.4.1:: Apache Shiro 1.2.1 includes an incompatible version of quartz, it's now excluded in BuildConfig.groovy
 2.4.0:: First version compatible with Grails 2.4.4.
 2.0.0:: First public release
 
