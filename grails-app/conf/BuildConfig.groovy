@@ -42,7 +42,7 @@ grails.project.dependency.resolution = {
             excludes 'quartz'
         }
 
-        compile ":crm-security:2.4.2"
+        compile ":crm-security:2.4.4"
     }
 }
 
