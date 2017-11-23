@@ -30,15 +30,12 @@ import grails.plugins.crm.security.CrmUserRole
 import grails.plugins.crm.security.CrmUserPermission
 
 class ShiroDbRealm {
+
     static authTokenClass = org.apache.shiro.authc.UsernamePasswordToken
 
     def credentialMatcher
     def shiroPermissionResolver
     def crmSecurityService
-
-    boolean supports() {
-        return true
-    }
 
     def authenticate(authToken) {
         log.debug "Attempting to authenticate ${authToken.username} in DB realm..."
@@ -90,7 +87,7 @@ class ShiroDbRealm {
             } else {
                 salt = username.bytes
             }
-            def account = new SimpleAccount(username, shiroCrmUser.passwordHash, new SimpleByteSource(salt), "ShiroDbRealm")
+            def account = new SimpleAccount(username, shiroCrmUser.passwordHash, new SimpleByteSource(salt), ShiroDbRealm.name)
             if (!credentialMatcher.doCredentialsMatch(authToken, account)) {
                 // If that didn't work, try with the weaker password hash that was used in older versions.
                 // If that password match, upgrade the hash to stronger encryption.
