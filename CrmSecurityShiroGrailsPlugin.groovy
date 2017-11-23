@@ -14,12 +14,11 @@
  *  limitations under the License.
  *  under the License.
  */
-
 import grails.plugins.crm.security.shiro.ShiroSecurityDelegate
 
 class CrmSecurityShiroGrailsPlugin {
     def groupId = ""
-    def version = "2.4.2"
+    def version = "2.4.3-SNAPSHOT"
     def grailsVersion = "2.2 > *"
     def dependsOn = [:]
     def loadAfter = ['crmSecurity', 'shiro']
@@ -40,7 +39,7 @@ This plugin leverage the shiro plugin to authenticate and authorize GR8 CRM user
     def scm = [url: "https://github.com/goeh/grails-crm-security-shiro"]
 
     def doWithSpring = {
-        crmSecurityDelegate(ShiroSecurityDelegate) {bean->
+        crmSecurityDelegate(ShiroSecurityDelegate) { bean ->
             bean.autowire = "byName"
         }
         credentialMatcher(org.apache.shiro.authc.credential.HashedCredentialsMatcher) {
